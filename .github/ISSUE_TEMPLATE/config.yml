@@ -1,8 +1,0 @@
-blank_issues_enabled: false
-contact_links:
-  - name: Documentation
-    url: https://Auk1sa.github.io/ChenLink/
-    about: Read the project documentation before opening an issue.
-  - name: Security report
-    url: https://github.com/Auk1sa/ChenLink/security/policy
-    about: Report security problems privately.
