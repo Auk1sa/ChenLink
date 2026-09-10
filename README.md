@@ -101,7 +101,7 @@ dotnet run --project src/ChenLinkServer -- 9000  # 自定义端口
 ## 🔨 从源码构建
 
 ```powershell
-# 单文件自包含版（约 200MB，内置 .NET 8 + Windows App SDK，目标机器免安装运行时）
+# 单文件自包含版（约 90MB，内置 .NET 8 + Windows App SDK，目标机器免安装运行时）
 dotnet publish src/ChenLink/ChenLink.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -p:DebugSymbols=false -o dist
 ```
 
