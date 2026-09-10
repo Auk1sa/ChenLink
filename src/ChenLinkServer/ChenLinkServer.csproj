@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>ChenLinkServer</RootNamespace>
+    <AssemblyName>ChenLinkServer</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\ChenLink\Engine\Protocol.cs" Link="Engine\Protocol.cs" />
+    <Compile Include="..\ChenLink\Engine\Mux.cs" Link="Engine\Mux.cs" />
+    <Compile Include="..\ChenLink\Engine\Session.cs" Link="Engine\Session.cs" />
+  </ItemGroup>
+</Project>
+

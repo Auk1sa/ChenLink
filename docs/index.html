@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="assets/favicon.ico">
+<title>ChenLink · 让局域网游戏跨网络联机</title>
+<!-- 仓库地址：https://github.com/Auk1sa/ChenLink（若仓库名不同请自行修改） -->
+<meta property="og:title" content="ChenLink · P2P 联机工具">
+<meta property="og:description" content="让只能局域网联机的游戏，跨网络也能一起玩：P2P 打洞直连，失败自动中继。">
+<meta property="og:url" content="https://Auk1sa.github.io/ChenLink/">
+<meta property="og:image" content="https://Auk1sa.github.io/ChenLink/assets/logo.png">
+<style>
+  :root{
+    --bg:#0f1115; --card:#181c24; --line:#2a303c; --text:#e8ecf2;
+    --muted:#9aa5b5; --accent:#4cc2ff; --accent2:#7c5cff; --ok:#3ddc97;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:linear-gradient(160deg,#0b0e14,#141927 60%,#0f1115); color:var(--text);
+       font-family:"Segoe UI","Microsoft YaHei UI","Microsoft YaHei",system-ui,sans-serif;
+       line-height:1.7; min-height:100vh;}
+  .wrap{max-width:960px; margin:0 auto; padding:48px 20px 80px;}
+  header{text-align:center; margin-bottom:44px;}
+  .logo-img{display:block; width:172px; height:172px; object-fit:contain; margin:0 auto 14px;
+            border-radius:36px; box-shadow:0 18px 50px rgba(76,194,255,.18);}
+  .logo{font-size:44px; font-weight:800; letter-spacing:1px;}
+  .logo span{color:var(--accent);}
+  .tag{color:var(--muted); font-size:17px; margin-top:10px;}
+  .badges{margin-top:16px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;}
+  .badge{border:1px solid var(--line); border-radius:99px; padding:4px 14px; font-size:13px; color:var(--muted);}
+  .cta{margin-top:26px; display:flex; gap:14px; justify-content:center; flex-wrap:wrap;}
+  .btn{display:inline-block; padding:12px 26px; border-radius:10px; text-decoration:none; font-weight:600;}
+  .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#0b0e14;}
+  .btn.ghost{border:1px solid var(--line); color:var(--text);}
+  .btn.ghost:hover{border-color:var(--accent);}
+  section{background:var(--card); border:1px solid var(--line); border-radius:16px;
+          padding:26px 28px; margin-bottom:22px;}
+  h2{font-size:20px; margin-bottom:14px; display:flex; align-items:center; gap:10px;}
+  p{color:var(--text); margin-bottom:10px;}
+  .muted{color:var(--muted); font-size:14px;}
+  ul{padding-left:20px; margin:8px 0 14px;}
+  li{margin-bottom:6px;}
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px;}
+  .card{border:1px solid var(--line); border-radius:12px; padding:16px;}
+  .card b{color:var(--accent);}
+  .card p{font-size:14px; color:var(--muted); margin:6px 0 0;}
+  code{background:#0b0e14; border:1px solid var(--line); border-radius:6px; padding:2px 7px;
+       font-family:Consolas,"Cascadia Mono",monospace; font-size:13px; color:#ffd479;}
+  pre{background:#0b0e14; border:1px solid var(--line); border-radius:10px; padding:14px 16px;
+      overflow-x:auto; margin:10px 0;}
+  pre code{border:none; padding:0; color:#a5e075;}
+  .steps{counter-reset:step;}
+  .step{position:relative; padding-left:44px; margin-bottom:14px;}
+  .step::before{counter-increment:step; content:counter(step);
+    position:absolute; left:0; top:2px; width:28px; height:28px; border-radius:50%;
+    background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#0b0e14;
+    font-weight:700; display:flex; align-items:center; justify-content:center; font-size:14px;}
+  .ok{color:var(--ok);}
+  footer{text-align:center; color:var(--muted); font-size:13px; margin-top:30px;}
+  a{color:var(--accent);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <img class="logo-img" src="assets/logo.png" alt="ChenLink logo">
+    <h1 class="logo">Chen<span>Link</span></h1>
+    <p class="tag">让只能局域网联机的游戏，跨网络也能一起玩</p>
+    <div class="badges">
+      <span class="badge">Windows 10 / 11</span>
+      <span class="badge">Apache-2.0</span>
+      <span class="badge">P2P 直连 · 中继兜底</span>
+      <span class="badge">无需公网 IP</span>
+    </div>
+    <div class="cta">
+      <!-- 仓库地址 -->
+      <a class="btn primary" href="https://github.com/Auk1sa/ChenLink">GitHub 仓库</a>
+      <!-- 发布 Release 后即可下载（当前可先指向仓库页） -->
+      <a class="btn ghost" href="https://github.com/Auk1sa/ChenLink/releases">下载 Release</a>
+    </div>
+  </header>
+
+  <section>
+    <h2>🎯 这是什么？</h2>
+    <p><b>ChenLink</b> 是一款 Windows 桌面小工具：房主把“游戏服务器端口”通过房间码共享给好友，
+       好友在本地得到一个映射端口，在游戏里“直接连接 <code>127.0.0.1:映射端口</code>”即可联机。</p>
+    <p>它不是一个网页游戏 —— 本项目是 <b>WinUI 3 桌面应用</b>，此页面只是展示与介绍，
+       实际游玩需要下载/构建 Windows 程序（见下方步骤）。</p>
+  </section>
+
+  <section>
+    <h2>✨ 核心特性</h2>
+    <div class="grid">
+      <div class="card"><b>跨网络联机</b><p>仅限局域网的 TCP/UDP 游戏，也能和异地好友一起玩（UDP 与 TCP 同端口转发，基岩版等 UDP 游戏同样可连）。</p></div>
+      <div class="card"><b>直连优先</b><p>同网直连 / TCP 打洞，能直连就不绕路。</p></div>
+      <div class="card"><b>中继兜底</b><p>打洞失败自动走服务器中继，保证可用。</p></div>
+      <div class="card"><b>免公网 IP</b><p>内置 EasyTier 模式，借助公共节点自动组网。</p></div>
+      <div class="card"><b>常用游戏预设</b><p>Minecraft、泰拉瑞亚、星露谷、英灵神殿一键填端口。</p></div>
+      <div class="card"><b>单文件分发</b><p>自包含构建，目标机器免装运行时。</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>🚀 使用步骤</h2>
+    <div class="steps">
+      <div class="step"><p>下载或构建 <b>ChenLink.exe</b>（需要 Windows 10/11）。</p></div>
+      <div class="step"><p><b>房主</b>：选游戏 / 填端口 → 创建房间（无公网模式则点“创建无公网房间”）。</p></div>
+      <div class="step"><p>把 <b>5 位房间码</b>（或整行邀请码）发给好友。</p></div>
+      <div class="step"><p><b>玩家</b>：输入房间码 / 粘贴邀请码 → 加入房间。</p></div>
+      <div class="step"><p>状态变 <b class="ok">“已就绪”</b> 后，在游戏里选择“多人游戏 / 直接连接”，</p>
+          <p>填入 <code>127.0.0.1:本机连接端口</code>（无公网模式填提示的 <code>虚拟IP:端口</code>）。</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>🔧 自己构建（开发者）</h2>
+    <p class="muted">需要 .NET 8 SDK。Windows App SDK 的 NuGet 首次还原需联网。</p>
+    <pre><code># 端到端自测（无需游戏）
+dotnet run --project src/ChenLinkServer -- --selftest
+
+# 构建客户端
+dotnet build src/ChenLink/ChenLink.csproj -c Release -p:Platform=x64
+
+# 打包单文件自包含版
+dotnet publish src/ChenLink/ChenLink.csproj -c Release -p:Platform=x64 -r win-x64 `
+  --self-contained true -p:PublishSingleFile=true `
+  -p:IncludeNativeLibrariesForSelfExtract=true -o dist</code></pre>
+  </section>
+
+  <section>
+    <h2>🛡️ 安全提示</h2>
+    <ul>
+      <li>信令与中继链路<b>未加密</b>，明文会经过中继服务器 —— 请只使用自己信任的服务器。</li>
+      <li>房间码仅 5 位、强度有限，本工具只适合<b>好友间游戏联机</b>，请勿用于敏感数据传输。</li>
+      <li>无公网 IP 模式需要管理员权限安装虚拟网卡（EasyTier 固有要求）。</li>
+    </ul>
+  </section>
+
+  <footer>
+    ChenLink · 以 Apache License 2.0 开源 ·
+    <!-- 仓库地址 -->
+    <a href="https://github.com/Auk1sa/ChenLink">GitHub</a>
+  </footer>
+</div>
+</body>
+</html>

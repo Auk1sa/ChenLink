@@ -1,0 +1,34 @@
+# ---------- .NET / Visual Studio ----------
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+project.lock.json
+
+# ---------- NuGet / dotnet tools ----------
+.dotnet-cli/
+.nuget/
+packages/
+
+# ---------- 构建产物 ----------
+dist/
+artifacts/
+publish/
+*.nupkg
+
+# ---------- IDE / 编辑器 ----------
+.idea/
+.vscode/
+*.swp
+*.tmp
+
+# ---------- 操作系统 ----------
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# ---------- 本地配置 / 日志 ----------
+*.log

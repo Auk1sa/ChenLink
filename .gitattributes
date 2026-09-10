@@ -1,0 +1,16 @@
+# 文本文件统一使用 LF；git 会自动在检出时按平台处理（配合 core.autocrlf）
+* text=auto eol=lf
+
+# Visual Studio 解决方案文件保留 CRLF
+*.sln text eol=crlf
+
+# 二进制文件：禁止 diff / 换行转换
+*.ico binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.exe binary
+*.dll binary
+*.sys binary
+src/ChenLink/native/** binary

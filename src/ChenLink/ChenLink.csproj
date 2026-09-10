@@ -1,0 +1,63 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>ChenLink</RootNamespace>
+    <AssemblyTitle>ChenLink</AssemblyTitle>
+    <Description>P2P game multiplayer tool</Description>
+    <Company>Auk1sa</Company>
+    <Authors>Auk1sa</Authors>
+    <Product>ChenLink</Product>
+    <Copyright>Copyright © 2026 Auk1sa</Copyright>
+    <Version>1.0.0</Version>
+    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <InformationalVersion>V1</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <ProductVersion>V1</ProductVersion>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\..\ChenLink.ico</ApplicationIcon>
+    <Platform Condition="'$(Platform)' == '' or '$(Platform)' == 'AnyCPU'">x64</Platform>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
+    <UseWinUI>true</UseWinUI>
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <SatelliteResourceLanguages>en-US;zh-CN</SatelliteResourceLanguages>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="1.8.260803003" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\ChenLink.ico" LogicalName="assets.ChenLink.ico" />
+    <EmbeddedResource Include="native\easytier-core.exe" LogicalName="native.easytier-core.exe" />
+    <EmbeddedResource Include="native\easytier-cli.exe" LogicalName="native.easytier-cli.exe" />
+    <EmbeddedResource Include="native\wintun.dll" LogicalName="native.wintun.dll" />
+    <EmbeddedResource Include="native\Packet.dll" LogicalName="native.Packet.dll" />
+    <EmbeddedResource Include="native\WinDivert64.sys" LogicalName="native.WinDivert64.sys" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\ChenLinkServer\ServerCore.cs" Link="Server\ServerCore.cs" />
+  </ItemGroup>
+  <Target Name="RemoveUnusedLocalizedResources" AfterTargets="Build;Publish">
+    <ItemGroup>
+      <_Mui Remove="@(_Mui)" />
+      <_Mui Include="$(OutDir)**\*.mui" />
+      <_Mui Include="$(PublishDir)**\*.mui" Condition="'$(PublishDir)' != ''" />
+      <_Mui Include="$(IntermediateOutputPath)MsixContent\**\*.mui" Condition="'$(IntermediateOutputPath)' != ''" />
+      <_Mui Remove="$(OutDir)en-us\**;$(OutDir)en-US\**;$(OutDir)en\**;$(OutDir)zh-CN\**;$(OutDir)zh-Hans\**" />
+      <_Mui Remove="$(PublishDir)en-us\**;$(PublishDir)en-US\**;$(PublishDir)en\**;$(PublishDir)zh-CN\**;$(PublishDir)zh-Hans\**" />
+      <_Mui Remove="$(IntermediateOutputPath)MsixContent\en-us\**;$(IntermediateOutputPath)MsixContent\en-US\**;$(IntermediateOutputPath)MsixContent\en\**;$(IntermediateOutputPath)MsixContent\zh-CN\**;$(IntermediateOutputPath)MsixContent\zh-Hans\**" />
+      <_LocaleDir Include="@(_Mui->'%(RootDir)%(Directory)')" />
+    </ItemGroup>
+    <Delete Files="@(_Mui)" />
+    <RemoveDir Directories="@(_LocaleDir)" />
+  </Target>
+</Project>
+
+

@@ -1,0 +1,245 @@
+﻿<Window
+    x:Class="ChenLink.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="ChenLink · P2P 联机">
+
+    <Grid RequestedTheme="Dark">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 自绘标题栏：左侧可拖动，右侧为自绘 最小化/最大化/关闭 -->
+        <Grid x:Name="AppTitleBar" Height="46">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel x:Name="TitleDragRegion" Orientation="Horizontal" VerticalAlignment="Center" Padding="20,0,0,0" Spacing="10">
+                <TextBlock Text="ChenLink" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+                <TextBlock Text="房间制 P2P 联机 · 支持无公网 IP" Opacity="0.7" VerticalAlignment="Center"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="0">
+                <Button x:Name="SettingsBtn" Width="46" Height="46" Background="Transparent" BorderThickness="0"
+                        ToolTipService.ToolTip="设置" Click="TitleSettings_Click">
+                    <FontIcon Glyph="&#xE713;" FontSize="14"/>
+                </Button>
+                <Button x:Name="MinBtn" Width="46" Height="46" Background="Transparent" BorderThickness="0"
+                        ToolTipService.ToolTip="最小化" Click="TitleMinBtn_Click">
+                    <FontIcon Glyph="&#xE921;" FontSize="10"/>
+                </Button>
+                <Button x:Name="MaxBtn" Width="46" Height="46" Background="Transparent" BorderThickness="0"
+                        ToolTipService.ToolTip="最大化" Click="TitleMaxBtn_Click">
+                    <FontIcon x:Name="MaxIcon" Glyph="&#xE922;" FontSize="10"/>
+                </Button>
+                <Button x:Name="CloseBtn" Width="46" Height="46" Background="Transparent" BorderThickness="0"
+                        ToolTipService.ToolTip="关闭" Click="TitleCloseBtn_Click">
+                    <FontIcon Glyph="&#xE8BB;" FontSize="10"/>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- 主内容：整体可滚动（鼠标滚轮上下滑动） -->
+        <ScrollViewer Grid.Row="1" x:Name="RootScroll"
+                      VerticalScrollBarVisibility="Auto" VerticalScrollMode="Enabled"
+                      HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled"
+                      Padding="20,8,20,14">
+            <StackPanel Spacing="14">
+
+                <!-- ============ 设置 ============ -->
+                <Border x:Name="SettingsPanel" Visibility="Collapsed" Background="#202020" BorderBrush="#3A3A3A" BorderThickness="1" CornerRadius="14" Padding="18">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="⚙️ 设置" FontSize="17" FontWeight="Bold"/>
+                        <ToggleSwitch x:Name="AutoStartSwitch" Header="开机自启动（登录后自动运行）"
+                                      OnContent="已开启" OffContent="已关闭" Toggled="AutoStartSwitch_Toggled"/>
+                        <ToggleSwitch x:Name="AutoProbeSwitch" Header="每次启动自动获取可用公共节点"
+                                      OnContent="已开启" OffContent="已关闭" Toggled="AutoProbeSwitch_Toggled"/>
+                        <TextBlock Text="提示：本程序需要管理员权限，开机自启动时 Windows 会在登录后弹一次 UAC 确认。"
+                                   Opacity="0.55" FontSize="11" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- ============ 无公网IP组网（置顶，推荐） ============ -->
+                <Border Background="#202830" BorderBrush="#3A4A55" BorderThickness="1" CornerRadius="14" Padding="18">
+                    <StackPanel Spacing="10">
+                        <!-- 标题与节点控件分行：1024 宽下也不会被裁掉 -->
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="🌐 无公网 IP 联机（EasyTier 公共节点，自动打洞/中继）" FontSize="17" FontWeight="Bold"/>
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <TextBox x:Name="EtNodesBox" Header="公共节点（可点右侧按钮自动获取）" Text="tcp://38.147.105.178:11010" Width="360" VerticalAlignment="Bottom"/>
+                                <Button x:Name="EtProbeBtn" Content="⚡ 自动获取可用公共节点" VerticalAlignment="Bottom" Click="EtProbeBtn_Click"/>
+                                <Button x:Name="EtStopBtn" Content="断开虚拟网络" Visibility="Collapsed" VerticalAlignment="Bottom" Click="EtStopBtn_Click"/>
+                            </StackPanel>
+                            <!-- 节点测速结果：每个节点的 Ping，按延迟升序 -->
+                            <TextBlock x:Name="EtPingText" Opacity="0.75" FontSize="12" TextWrapping="Wrap"
+                                       Text="点“自动获取可用公共节点”会逐个测速，并按延迟从低到高显示 Ping。"/>
+                        </StackPanel>
+                        <Grid ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="我是房主（本机开服，选好游戏/端口再创建）" FontWeight="SemiBold"/>
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <ComboBox x:Name="EtGameBox" Header="热门游戏（按热度排序，自动填端口）" MinWidth="300" VerticalAlignment="Bottom" SelectionChanged="EtGameBox_SelectionChanged">
+                                        <ComboBoxItem Content="我的世界 Java版（TCP 25565）" Tag="25565" ToolTipService.ToolTip="Minecraft Java Edition · TCP 25565"/>
+                                        <ComboBoxItem Content="我的世界 基岩版（UDP 19132）" Tag="19132" ToolTipService.ToolTip="Minecraft Bedrock Edition · UDP 19132"/>
+                                        <ComboBoxItem Content="戴森球计划（TCP 8469）" Tag="8469" ToolTipService.ToolTip="Dyson Sphere Program · TCP 8469（Nebula联机MOD）"/>
+                                        <ComboBoxItem Content="泰拉瑞亚（TCP 7777）" Tag="7777" ToolTipService.ToolTip="Terraria · TCP 7777"/>
+                                        <ComboBoxItem Content="饥荒联机版（UDP 10999）" Tag="10999" ToolTipService.ToolTip="Don't Starve Together (DST) · UDP 10999"/>
+                                        <ComboBoxItem Content="逃离鸭科夫（UDP 9050）" Tag="9050" ToolTipService.ToolTip="Escape From Duckov · UDP 9050（联机MOD）"/>
+                                        <ComboBoxItem Content="幸福工厂（UDP 7777）" Tag="7777" ToolTipService.ToolTip="Satisfactory · UDP 7777 / TCP 8888"/>
+                                        <ComboBoxItem Content="夜族崛起（UDP 9876）" Tag="9876" ToolTipService.ToolTip="V Rising · UDP 9876 / 9877（查询）"/>
+                                        <ComboBoxItem Content="僵尸毁灭工程（UDP 16261）" Tag="16261" ToolTipService.ToolTip="Project Zomboid · UDP 16261 / 16262"/>
+                                        <ComboBoxItem Content="七日杀（UDP 26900）" Tag="26900" ToolTipService.ToolTip="7 Days to Die · UDP 26900~26902"/>
+                                        <ComboBoxItem Content="灵魂面甲（UDP 8777）" Tag="8777" ToolTipService.ToolTip="Soulmask · UDP 8777 / 27015（查询）"/>
+                                        <ComboBoxItem Content="人渣（UDP 7777）" Tag="7777" ToolTipService.ToolTip="SCUM · UDP 7777 / 7779（查询）"/>
+                                        <ComboBoxItem Content="异星旅人（UDP 8777）" Tag="8777" ToolTipService.ToolTip="ASTRONEER · UDP 8777"/>
+                                        <ComboBoxItem Content="像素工厂（TCP/UDP 6567）" Tag="6567" ToolTipService.ToolTip="Mindustry · TCP/UDP 6567"/>
+                                        <ComboBoxItem Content="罗马拓荒录（UDP 8050）" Tag="8050" ToolTipService.ToolTip="Romestead · UDP 8050"/>
+                                        <ComboBoxItem Content="DayZ（UDP 2302）" Tag="2302" ToolTipService.ToolTip="DayZ · UDP 2302（2302~2305）"/>
+                                        <ComboBoxItem Content="幻兽帕鲁（UDP 8211）" Tag="8211" ToolTipService.ToolTip="Palworld · UDP 8211"/>
+                                        <ComboBoxItem Content="星露谷物语（UDP 24642）" Tag="24642" ToolTipService.ToolTip="Stardew Valley · UDP 24642"/>
+                                        <ComboBoxItem Content="英灵神殿（UDP 2456）" Tag="2456" ToolTipService.ToolTip="Valheim · UDP 2456 / 2457 / 2458"/>
+                                        <ComboBoxItem Content="异星工厂（TCP 34197）" Tag="34197" ToolTipService.ToolTip="Factorio · TCP 34197"/>
+                                        <ComboBoxItem Content="星界边境（TCP 21025）" Tag="21025" ToolTipService.ToolTip="Starbound · TCP 21025"/>
+                                        <ComboBoxItem Content="方舟：生存进化（UDP 7777）" Tag="7777" ToolTipService.ToolTip="ARK: Survival Evolved · UDP 7777 / 27015"/>
+                                        <ComboBoxItem Content="腐蚀（UDP 28015）" Tag="28015" ToolTipService.ToolTip="Rust · UDP 28015"/>
+                                        <ComboBoxItem Content="流放者柯南（UDP 7777）" Tag="7777" ToolTipService.ToolTip="Conan Exiles · UDP 7777"/>
+                                        <!-- 自定义端口：始终保留，可手填任意 1-65535，不受预设选择影响 -->
+                                        <ComboBoxItem Content="自定义端口" Tag=""/>
+                                    </ComboBox>
+                                    <TextBox x:Name="EtPortBox" Header="游戏端口" Text="25565" Width="130" VerticalAlignment="Bottom"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <Button x:Name="EtHostBtn" Content="＋ 创建无公网房间" Style="{StaticResource AccentButtonStyle}" Click="EtHostBtn_Click"/>
+                                    <TextBlock x:Name="EtHostIpText" Text="未启动" VerticalAlignment="Center" Opacity="0.85"/>
+                                </StackPanel>
+                                <StackPanel x:Name="EtHostInfo" Visibility="Collapsed" Spacing="6">
+                                    <TextBlock Text="把下面整行邀请码发给好友（含网络名/口令/端口）" Opacity="0.7" FontSize="12"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <TextBox x:Name="EtInviteText" IsReadOnly="True" MinWidth="320"/>
+                                        <Button x:Name="EtCopyInviteBtn" Content="复制邀请码" Click="EtCopyInviteBtn_Click"/>
+                                    </StackPanel>
+                                    <TextBlock x:Name="EtHostHint" Opacity="0.85" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Spacing="8">
+                                <TextBlock Text="我是玩家（加入房主的 MC 服）" FontWeight="SemiBold"/>
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <TextBox x:Name="EtInviteBox" Header="粘贴房主邀请码" Width="340" VerticalAlignment="Bottom"/>
+                                    <Button x:Name="EtJoinBtn" Content="＋ 加入无公网房间" Style="{StaticResource AccentButtonStyle}" VerticalAlignment="Bottom" Click="EtJoinBtn_Click"/>
+                                </StackPanel>
+                                <StackPanel x:Name="EtJoinInfo" Visibility="Collapsed" Spacing="6">
+                                    <TextBlock x:Name="EtJoinIpText" Opacity="0.8"/>
+                                    <TextBlock x:Name="EtFoundText" Opacity="0.9" TextWrapping="Wrap"/>
+                                    <Button x:Name="EtCopyAddrBtn" Content="复制 MC 连接地址" Visibility="Collapsed" Click="EtCopyAddrBtn_Click"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- ============ 旧模式：自建信令服务器（已并入服务器设置） ============ -->
+                <Border Background="#201F1F" BorderBrush="#3A3A3A" BorderThickness="1" CornerRadius="14" Padding="18">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="旧模式 · 自建信令/中继服务器（需要一台双方都能访问的机器）" FontSize="15" FontWeight="Bold"/>
+                        <StackPanel Spacing="4">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <TextBox x:Name="ServerBox" Header="信令服务器" Text="127.0.0.1:9100" Width="250" VerticalAlignment="Bottom"/>
+                                <TextBox x:Name="NameBox" Header="昵称" PlaceholderText="留空用计算机名" Width="150" VerticalAlignment="Bottom"/>
+                                <ToggleSwitch x:Name="EmbedSrvSwitch" Header="内置信令服务器" OnContent="运行中" OffContent="关闭" Toggled="EmbedSrvSwitch_Toggled" VerticalAlignment="Bottom"/>
+                                <TextBox x:Name="SrvPortBox" Text="9100" Header="端口" Width="90" VerticalAlignment="Bottom"/>
+                            </StackPanel>
+                            <TextBlock Text="本机开内置服务器时，好友“信令服务器”填 本机IP:端口（需公网IP/端口映射/防火墙放行）。"
+                                       Opacity="0.55" FontSize="11" TextWrapping="Wrap"/>
+                        </StackPanel>
+
+                        <Grid ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="房主 · 我开服" FontWeight="SemiBold"/>
+                                <ComboBox x:Name="GameBox" Header="热门游戏（按热度排序，自动填端口）" HorizontalAlignment="Stretch" SelectionChanged="GameBox_SelectionChanged">
+                                    <ComboBoxItem Content="我的世界 Java版（TCP 25565）" Tag="25565" ToolTipService.ToolTip="Minecraft Java Edition · TCP 25565"/>
+                                    <ComboBoxItem Content="我的世界 基岩版（UDP 19132）" Tag="19132" ToolTipService.ToolTip="Minecraft Bedrock Edition · UDP 19132"/>
+                                    <ComboBoxItem Content="戴森球计划（TCP 8469）" Tag="8469" ToolTipService.ToolTip="Dyson Sphere Program · TCP 8469（Nebula联机MOD）"/>
+                                    <ComboBoxItem Content="泰拉瑞亚（TCP 7777）" Tag="7777" ToolTipService.ToolTip="Terraria · TCP 7777"/>
+                                    <ComboBoxItem Content="饥荒联机版（UDP 10999）" Tag="10999" ToolTipService.ToolTip="Don't Starve Together (DST) · UDP 10999"/>
+                                    <ComboBoxItem Content="逃离鸭科夫（UDP 9050）" Tag="9050" ToolTipService.ToolTip="Escape From Duckov · UDP 9050（联机MOD）"/>
+                                    <ComboBoxItem Content="幸福工厂（UDP 7777）" Tag="7777" ToolTipService.ToolTip="Satisfactory · UDP 7777 / TCP 8888"/>
+                                    <ComboBoxItem Content="夜族崛起（UDP 9876）" Tag="9876" ToolTipService.ToolTip="V Rising · UDP 9876 / 9877（查询）"/>
+                                    <ComboBoxItem Content="僵尸毁灭工程（UDP 16261）" Tag="16261" ToolTipService.ToolTip="Project Zomboid · UDP 16261 / 16262"/>
+                                    <ComboBoxItem Content="七日杀（UDP 26900）" Tag="26900" ToolTipService.ToolTip="7 Days to Die · UDP 26900~26902"/>
+                                    <ComboBoxItem Content="灵魂面甲（UDP 8777）" Tag="8777" ToolTipService.ToolTip="Soulmask · UDP 8777 / 27015（查询）"/>
+                                    <ComboBoxItem Content="人渣（UDP 7777）" Tag="7777" ToolTipService.ToolTip="SCUM · UDP 7777 / 7779（查询）"/>
+                                    <ComboBoxItem Content="异星旅人（UDP 8777）" Tag="8777" ToolTipService.ToolTip="ASTRONEER · UDP 8777"/>
+                                    <ComboBoxItem Content="像素工厂（TCP/UDP 6567）" Tag="6567" ToolTipService.ToolTip="Mindustry · TCP/UDP 6567"/>
+                                    <ComboBoxItem Content="罗马拓荒录（UDP 8050）" Tag="8050" ToolTipService.ToolTip="Romestead · UDP 8050"/>
+                                    <ComboBoxItem Content="DayZ（UDP 2302）" Tag="2302" ToolTipService.ToolTip="DayZ · UDP 2302（2302~2305）"/>
+                                    <ComboBoxItem Content="幻兽帕鲁（UDP 8211）" Tag="8211" ToolTipService.ToolTip="Palworld · UDP 8211"/>
+                                    <ComboBoxItem Content="星露谷物语（UDP 24642）" Tag="24642" ToolTipService.ToolTip="Stardew Valley · UDP 24642"/>
+                                    <ComboBoxItem Content="英灵神殿（UDP 2456）" Tag="2456" ToolTipService.ToolTip="Valheim · UDP 2456 / 2457 / 2458"/>
+                                    <ComboBoxItem Content="异星工厂（TCP 34197）" Tag="34197" ToolTipService.ToolTip="Factorio · TCP 34197"/>
+                                    <ComboBoxItem Content="星界边境（TCP 21025）" Tag="21025" ToolTipService.ToolTip="Starbound · TCP 21025"/>
+                                    <ComboBoxItem Content="方舟：生存进化（UDP 7777）" Tag="7777" ToolTipService.ToolTip="ARK: Survival Evolved · UDP 7777 / 27015"/>
+                                    <ComboBoxItem Content="腐蚀（UDP 28015）" Tag="28015" ToolTipService.ToolTip="Rust · UDP 28015"/>
+                                    <ComboBoxItem Content="流放者柯南（UDP 7777）" Tag="7777" ToolTipService.ToolTip="Conan Exiles · UDP 7777"/>
+                                    <!-- 自定义端口：始终保留，可手填任意 1-65535，不受预设选择影响 -->
+                                    <ComboBoxItem Content="自定义端口" Tag=""/>
+                                </ComboBox>
+                                <TextBox x:Name="GamePort" Header="游戏端口（MC=25565）" PlaceholderText="例如 25565"/>
+                                <Button x:Name="CreateBtn" Content="＋ 创建房间" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Stretch" Click="CreateBtn_Click"/>
+                                <StackPanel x:Name="HostCodePanel" Visibility="Collapsed" Spacing="6" Margin="0,6,0,0">
+                                    <TextBlock Text="房间码（发给好友加入）" Opacity="0.7" HorizontalAlignment="Center"/>
+                                    <TextBlock x:Name="CodeText" FontSize="42" FontWeight="Bold" HorizontalAlignment="Center" CharacterSpacing="120"/>
+                                    <Button x:Name="CopyBtn" Content="复制房间码" HorizontalAlignment="Center" Click="CopyBtn_Click"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Spacing="10">
+                                <TextBlock Text="玩家 · 加入好友" FontWeight="SemiBold"/>
+                                <TextBox x:Name="RoomCode" Header="房间码（5 位）" PlaceholderText="例如 ABC23" MaxLength="5" CharacterCasing="Upper"/>
+                                <TextBox x:Name="MapPort" Header="本机连接端口（游戏里连 127.0.0.1:此端口）" PlaceholderText="例如 25565"/>
+                                <Button x:Name="JoinBtn" Content="＋ 加入房间" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Stretch" Click="JoinBtn_Click"/>
+                                <TextBlock x:Name="JoinHint" Text="提示：先让房主创建房间拿到房间码。" Opacity="0.55" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- 状态 -->
+                <Border Background="#201F1F" BorderBrush="#3A3A3A" BorderThickness="1" CornerRadius="14" Padding="20">
+                    <StackPanel Spacing="8">
+                        <TextBlock x:Name="StatusText" Text="空闲" FontSize="22" FontWeight="Bold"/>
+                        <TextBlock x:Name="DetailText" Text="没有公网 IP？用上方“无公网 IP 联机”；有中继服务器可用旧模式。" Opacity="0.75" TextWrapping="Wrap"/>
+                        <StackPanel Orientation="Horizontal" Spacing="16">
+                            <TextBlock x:Name="ModeText" Text="模式：-" FontWeight="SemiBold"/>
+                            <TextBlock x:Name="ChanText" Text="连接：0" Opacity="0.7"/>
+                            <TextBlock x:Name="BytesText" Text="流量：↑ 0 ↓ 0" Opacity="0.7"/>
+                            <Button x:Name="StopBtn" Content="断开 / 退出房间" Visibility="Collapsed" Click="StopBtn_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- 日志 -->
+                <Border Background="#201F1F" BorderBrush="#3A3A3A" BorderThickness="1" CornerRadius="14" Padding="16">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="日志" Opacity="0.7"/>
+                        <ListView x:Name="LogList" MaxHeight="160" SelectionMode="None" IsItemClickEnabled="False"/>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="旧模式 = 自建信令/中继服务器；无公网IP模式 = EasyTier 公共节点自动打洞与中继（需一次管理员授权装虚拟网卡）。"
+                           Opacity="0.5" FontSize="12"/>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Window>
+
+
