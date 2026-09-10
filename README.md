@@ -8,7 +8,6 @@
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-blue.svg" alt="License: Apache-2.0"></a>
   <a href="https://github.com/Auk1sa/ChenLink/actions/workflows/ci.yml"><img src="https://github.com/Auk1sa/ChenLink/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/Auk1sa/ChenLink/actions/workflows/pages.yml"><img src="https://github.com/Auk1sa/ChenLink/actions/workflows/pages.yml/badge.svg" alt="GitHub Pages"></a>
   <img src="https://img.shields.io/badge/Platform-Windows%2010%2F11-0078d4.svg" alt="Platform: Windows 10/11">
   <img src="https://img.shields.io/badge/.NET-8-512BD4.svg" alt=".NET 8">
 </p>
