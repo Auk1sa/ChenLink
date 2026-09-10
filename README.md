@@ -139,13 +139,6 @@ docs/                  GitHub Pages 展示页（静态站点）
 - UDP 游戏的数据报会封装进同一条 TCP 链路转发（端口号不变，无需额外开端口）；对延迟极敏感的对战可优先用“无公网 IP 模式”（EasyTier 虚拟局域网）。
 - 映射端口只监听 `127.0.0.1`，避免局域网他人误连。
 
-## 🌍 GitHub Pages 部署
-
-展示页 `docs/index.html` 会在每次推送到 `main` 时自动部署到 GitHub Pages（见 `.github/workflows/pages.yml`）。
-首次使用只需在仓库 **Settings → Pages** 中把 **Source** 选为 **“GitHub Actions”**，之后推送即可自动发布。
-
-> 记得把本 README 与 `docs/index.html` 里的仓库地址改成你自己的（当前假定仓库名为 `ChenLink`）。
-
 ## 🤝 贡献
 
 欢迎提交 Issue 与 PR。请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
