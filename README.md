@@ -155,11 +155,13 @@ docs/                  GitHub Pages 展示页（静态站点）
 </p>
 
 <p align="center">
-  <a href="https://github.com/Auk1sa"><strong>Auk1sa</strong></a>
-  <sub>项目作者 · 维护者</sub>
-  &nbsp;&nbsp;·&nbsp;&nbsp;
-  <a href="https://github.com/Godhuxx66"><strong>Godhuxx66</strong></a>
-  <sub>合作者 · 贡献者</sub>
+  <a href="https://github.com/Auk1sa">
+    <img src="https://img.shields.io/badge/OWNER-Auk1sa-2ea44f?style=for-the-badge&amp;logo=github&amp;logoColor=white&amp;labelColor=0d1117" alt="Auk1sa · Owner">
+  </a>
+  &nbsp;&nbsp;
+  <a href="https://github.com/Godhuxx66">
+    <img src="https://img.shields.io/badge/COLLABORATOR-Godhuxx66-0969da?style=for-the-badge&amp;logo=github&amp;logoColor=white&amp;labelColor=0d1117" alt="Godhuxx66 · Collaborator">
+  </a>
 </p>
 
 ## 🤝 贡献
