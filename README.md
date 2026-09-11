@@ -138,23 +138,34 @@ docs/                  GitHub Pages 展示页（静态站点）
 - UDP 游戏的数据报会封装进同一条 TCP 链路转发（端口号不变，无需额外开端口）；对延迟极敏感的对战可优先用“无公网 IP 模式”（EasyTier 虚拟局域网）。
 - 映射端口只监听 `127.0.0.1`，避免局域网他人误连。
 
-## 👥 作者
+## 👥 作者 & 合作者
 
 <p align="center">
-  <a href="https://github.com/Auk1sa">
-    <img src="https://github.com/Auk1sa.png?size=192" width="96" height="96" alt="Auk1sa">
-  </a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://github.com/Godhuxx66">
-    <img src="https://github.com/Godhuxx66.png?size=192" width="96" height="96" alt="Godhuxx66">
-  </a>
+  <sub>ChenLink 项目团队 · 让跨网络联机更简单</sub>
 </p>
 
-<p align="center">
-  <strong>作者：</strong><a href="https://github.com/Auk1sa">Auk1sa</a>
-  &nbsp;·&nbsp;
-  <strong>合作者：</strong><a href="https://github.com/Godhuxx66">Godhuxx66</a>
-</p>
+<table align="center">
+  <tr>
+    <td align="center" width="240">
+      <a href="https://github.com/Auk1sa">
+        <img src="docs/assets/authors/auk1sa.png" width="120" height="120" alt="Auk1sa">
+      </a>
+      <br><br>
+      <a href="https://github.com/Auk1sa"><strong>Auk1sa</strong></a>
+      <br>
+      <sub>项目作者 · 维护者</sub>
+    </td>
+    <td align="center" width="240">
+      <a href="https://github.com/Godhuxx66">
+        <img src="docs/assets/authors/godhuxx66.png" width="120" height="120" alt="Godhuxx66">
+      </a>
+      <br><br>
+      <a href="https://github.com/Godhuxx66"><strong>Godhuxx66</strong></a>
+      <br>
+      <sub>合作者 · 贡献者</sub>
+    </td>
+  </tr>
+</table>
 
 ## 🤝 贡献
 
