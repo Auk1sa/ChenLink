@@ -146,11 +146,11 @@ docs/                  GitHub Pages 展示页（静态站点）
 
 <p align="center">
   <a href="https://github.com/Auk1sa">
-    <img src="https://wsrv.nl/?url=github.com/Auk1sa.png&amp;w=240&amp;h=240&amp;fit=cover&amp;mask=circle&amp;maxage=1d" width="112" height="112" alt="Auk1sa">
+    <img src="https://wsrv.nl/?url=github.com/Auk1sa.png&amp;w=240&amp;h=240&amp;fit=cover&amp;mask=circle&amp;mbg=transparent&amp;output=png&amp;maxage=1d" width="112" height="112" alt="Auk1sa">
   </a>
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://github.com/Godhuxx66">
-    <img src="https://wsrv.nl/?url=github.com/Godhuxx66.png&amp;w=240&amp;h=240&amp;fit=cover&amp;mask=circle&amp;maxage=1d" width="112" height="112" alt="Godhuxx66">
+    <img src="https://wsrv.nl/?url=github.com/Godhuxx66.png&amp;w=240&amp;h=240&amp;fit=cover&amp;mask=circle&amp;mbg=transparent&amp;output=png&amp;maxage=1d" width="112" height="112" alt="Godhuxx66">
   </a>
 </p>
 
