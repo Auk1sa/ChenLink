@@ -18,6 +18,8 @@ public sealed class Mux
     readonly SemaphoreSlim _writeLock = new(1, 1);
     readonly ConcurrentDictionary<int, MuxChannel> _ch = new();
     readonly ConcurrentDictionary<int, TaskCompletionSource<bool>> _pending = new();
+    readonly byte[] _lenBuf = new byte[4];       // 读循环单线程使用，复用避免每帧分配
+    readonly byte[] _frameBuf = new byte[9];     // 写帧头（len4+type1+id4），_writeLock 保护下复用
     int _nextId = 1;
 
     public long BytesUp;   // 本端 -> 对端
@@ -39,11 +41,10 @@ public sealed class Mux
             
             while (!ct.IsCancellationRequested)
             {
-                var lenb = new byte[4];
-                await ReadExactlyAsync(_s, lenb, ct).ConfigureAwait(false);
-                int len = ReadInt(lenb, 0);
+                await ReadExactlyAsync(_s, _lenBuf, ct).ConfigureAwait(false);
+                int len = ReadInt(_lenBuf, 0);
                 if (len < HeaderLen || len > HeaderLen + MaxPayload) throw new InvalidDataException($"非法帧长度 {len}");
-                var body = new byte[len]; // type(1) + id(4) + payload
+                var body = new byte[len]; // type(1) + id(4) + payload；被 Channel/事件异步持有，不池化
                 await ReadExactlyAsync(_s, body, ct).ConfigureAwait(false);
                 byte type = body[0];
                 int id = ReadInt(body, 1);
@@ -90,14 +91,14 @@ public sealed class Mux
     async Task SendAsyncCore(byte type, int id, ReadOnlyMemory<byte> payload, CancellationToken ct)
     {
         if (payload.Length > MaxPayload) throw new ArgumentOutOfRangeException(nameof(payload));
-        var frame = new byte[HeaderLen + 4]; // len(4) + type(1) + id(4)
-        WriteInt(frame, 0, HeaderLen + payload.Length);
-        frame[4] = type;
-        WriteInt(frame, 5, id);
         await _writeLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            await _s.WriteAsync(frame, ct).ConfigureAwait(false);
+            // 帧头写入必须在锁内，否则多通道并发会互相覆盖 _frameBuf
+            WriteInt(_frameBuf, 0, HeaderLen + payload.Length);
+            _frameBuf[4] = type;
+            WriteInt(_frameBuf, 5, id);
+            await _s.WriteAsync(_frameBuf, ct).ConfigureAwait(false);
             if (!payload.IsEmpty) await _s.WriteAsync(payload, ct).ConfigureAwait(false);
             await _s.FlushAsync(ct).ConfigureAwait(false);
 

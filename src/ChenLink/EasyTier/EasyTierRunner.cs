@@ -205,8 +205,8 @@ public sealed class EasyTierRunner : IDisposable
                     Changed?.Invoke();
                     break;
                 }
-                var (ip, host) = QueryNode();
-                var peers = QueryPeers();
+                var (ip, host) = await QueryNodeAsync();
+                var peers = await QueryPeersAsync();
                 OwnIp = ip; Peers = peers;
                 if (!Ready && !string.IsNullOrEmpty(OwnIp))
                 {
@@ -220,13 +220,13 @@ public sealed class EasyTierRunner : IDisposable
                 if (snap != last) { last = snap; Changed?.Invoke(); }
             }
             catch { /* RPC 未就绪属正常 */ }
-            try { await Task.Delay(900, ct); } catch { break; }
+            try { await Task.Delay(3000, ct); } catch { break; }
         }
     }
 
-    (string, string) QueryNode()
+    async Task<(string, string)> QueryNodeAsync()
     {
-        var s = RunCli("node");
+        var s = await RunCliAsync("node");
         using var doc = JsonDocument.Parse(s);
         var r = doc.RootElement;
         var raw = r.TryGetProperty("ipv4_addr", out var ip) ? ip.GetString() ?? "" : ""; // 形如 10.126.126.1/24
@@ -235,10 +235,10 @@ public sealed class EasyTierRunner : IDisposable
                 r.TryGetProperty("hostname", out var hn) ? hn.GetString() ?? "" : "");
     }
 
-    List<EasyTierPeerInfo> QueryPeers()
+    async Task<List<EasyTierPeerInfo>> QueryPeersAsync()
     {
         var list = new List<EasyTierPeerInfo>();
-        var s = RunCli("peer");
+        var s = await RunCliAsync("peer");
         using var doc = JsonDocument.Parse(s);
         if (doc.RootElement.ValueKind != JsonValueKind.Array) return list;
         foreach (var it in doc.RootElement.EnumerateArray())
@@ -254,7 +254,7 @@ public sealed class EasyTierRunner : IDisposable
         return list;
     }
 
-    string RunCli(string sub)
+    async Task<string> RunCliAsync(string sub)
     {
         var psi = new ProcessStartInfo
         {
@@ -269,9 +269,17 @@ public sealed class EasyTierRunner : IDisposable
         psi.ArgumentList.Add("-o"); psi.ArgumentList.Add("json");
         psi.ArgumentList.Add(sub);
         using var proc = Process.Start(psi) ?? throw new Exception("无法启动 easytier-cli");
-        if (!proc.WaitForExit(4000)) { try { proc.Kill(); } catch { } }
-        var stdout = proc.StandardOutput.ReadToEnd();
-        if (proc.ExitCode != 0) throw new Exception("cli " + sub + " 失败");
+        // 先启动异步读取，再等退出，避免 stdout 缓冲区满导致死锁
+        var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+        var stderrTask = proc.StandardError.ReadToEndAsync();
+        try
+        {
+            await proc.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(4));
+        }
+        catch (TimeoutException) { try { proc.Kill(); } catch { } }
+        var stdout = await stdoutTask;
+        _ = await stderrTask;
+        if (!proc.HasExited || proc.ExitCode != 0) throw new Exception("cli " + sub + " 失败");
         return stdout;
     }
 

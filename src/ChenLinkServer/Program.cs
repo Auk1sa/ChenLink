@@ -76,6 +76,9 @@ static class SelfTest
             Console.WriteLine("== 自测 3：强制服务器中继 ==");
             await DirectScenarioAsync(port, gamePort, forceRelay: true, expectDirect: false);
 
+            Console.WriteLine("== 自测 4：加密中继（房间口令 + AES-GCM） ==");
+            await EncryptedScenarioAsync(port, gamePort);
+
             Console.WriteLine();
             Console.WriteLine("SELFTEST PASS");
             return 0;
@@ -148,6 +151,33 @@ static class SelfTest
         {
             await join.DisconnectAsync();
             await host.DisconnectAsync();
+        }
+    }
+
+    static async Task EncryptedScenarioAsync(int serverPort, int gamePort)
+    {
+        Session.ForceRelay = true;
+        int mapPort = FreePort();
+        const string secret = "test-secret-123";
+        var host = new Session($"127.0.0.1:{serverPort}", "测试房主", secret);
+        var join = new Session($"127.0.0.1:{serverPort}", "测试玩家", secret);
+        host.Log += m => Console.WriteLine("  [房主] " + m);
+        join.Log += m => Console.WriteLine("  [玩家] " + m);
+        try
+        {
+            await host.CreateRoomAsync(gamePort);
+            await join.JoinRoomAsync(host.Room, mapPort);
+            await WaitUntil(() => host.State == SessionState.Ready && join.State == SessionState.Ready, 20_000);
+            Assert(host.Mode == "中继" && join.Mode == "中继", "加密场景应走中继");
+            await EchoOnceAsync(mapPort, "encrypted-hello");
+            await EchoUdpOnceAsync(mapPort, "encrypted-udp");
+            Console.WriteLine("  加密回显通过（TCP + UDP）");
+        }
+        finally
+        {
+            await host.DisconnectAsync();
+            await join.DisconnectAsync();
+            Session.ForceRelay = false;
         }
     }
 

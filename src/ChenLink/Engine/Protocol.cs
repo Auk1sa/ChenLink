@@ -14,6 +14,8 @@ public static class Msg
     public const string Go    = "go";     // server -> client：房间已满，开始打通
     public const string Bye   = "bye";    // 任意方向：离开/对方离开
     public const string Relay = "relay";  // 中继数据连接握手
+    public const string Ping  = "ping";   // client -> server：心跳（保活，防 NAT 空闲断开）
+    public const string Pong  = "pong";   // server -> client：心跳应答
     public const string Err   = "err";
 }
 
@@ -25,6 +27,7 @@ public sealed class HelloMsg
     public string Name { get; set; } = "";
     public int Port { get; set; }                     // 本机用于直连的本地端口
     public string[] Lan { get; set; } = Array.Empty<string>();
+    public string Secret { get; set; } = "";          // 房间口令（可选；为空表示无口令房间）
 }
 
 public sealed class YouMsg { public string T { get; set; } = Msg.You; public string Ip { get; set; } = ""; }
@@ -44,6 +47,8 @@ public sealed class GoMsg { public string T { get; set; } = Msg.Go; public strin
 public sealed class ByeMsg { public string T { get; set; } = Msg.Bye; public string Why { get; set; } = ""; }
 public sealed class RelayMsg { public string T { get; set; } = Msg.Relay; public string Room { get; set; } = ""; public string Role { get; set; } = ""; }
 public sealed class ErrMsg { public string T { get; set; } = Msg.Err; public string Text { get; set; } = ""; }
+public sealed class PingMsg { public string T { get; set; } = Msg.Ping; }
+public sealed class PongMsg { public string T { get; set; } = Msg.Pong; }
 
 public static class Wire
 {

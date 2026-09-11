@@ -18,18 +18,80 @@ public static class ChenLinkServerCore
         public string Name = "";
         public int Port;
         public string[] Lan = Array.Empty<string>();
+        public string Secret = "";
     }
 
     sealed class RoomState
     {
         public Ctrl? Host;
         public Ctrl? Join;
+        public string Secret = "";
         public TcpClient? HostRelay; public TaskCompletionSource? HostRelayTcs;
         public TcpClient? JoinRelay; public TaskCompletionSource? JoinRelayTcs;
     }
 
     static readonly ConcurrentDictionary<string, RoomState> Rooms = new();
     const string RoomAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+    // ---------- 限流：每 IP 并发连接数 + 创建房间频率 ----------
+    const int MaxConnectionsPerIp = 16;
+    const int MaxRoomCreatePerMinute = 8;
+    static readonly ConcurrentDictionary<string, int> _connCount = new();
+    static readonly ConcurrentDictionary<string, Queue<DateTime>> _roomCreateTimes = new();
+
+    static bool TryAcquireConnection(string ip)
+    {
+        int n = _connCount.AddOrUpdate(ip, 1, (_, v) => v + 1);
+        if (n > MaxConnectionsPerIp)
+        {
+            _connCount.AddOrUpdate(ip, 0, (_, v) => Math.Max(0, v - 1));
+            return false;
+        }
+        return true;
+    }
+
+    static void ReleaseConnection(string ip) =>
+        _connCount.AddOrUpdate(ip, 0, (_, v) => Math.Max(0, v - 1));
+
+    static bool CanCreateRoom(string ip)
+    {
+        var now = DateTime.UtcNow;
+        var q = _roomCreateTimes.GetOrAdd(ip, _ => new Queue<DateTime>());
+        lock (q)
+        {
+            while (q.Count > 0 && (now - q.Peek()).TotalSeconds > 60) q.Dequeue();
+            if (q.Count >= MaxRoomCreatePerMinute) return false;
+            q.Enqueue(now);
+            return true;
+        }
+    }
+
+    // ---------- 文件日志（按天滚动，同时输出到控制台） ----------
+    static readonly object _logLock = new();
+    static string? _logFile;
+    static DateTime _logDate;
+
+    static void Log(string msg)
+    {
+        var line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {msg}";
+        Console.WriteLine(line);
+        try
+        {
+            lock (_logLock)
+            {
+                var today = DateTime.Today;
+                if (_logFile is null || _logDate != today)
+                {
+                    var dir = Path.Combine(AppContext.BaseDirectory, "logs");
+                    Directory.CreateDirectory(dir);
+                    _logFile = Path.Combine(dir, $"server-{today:yyyyMMdd}.log");
+                    _logDate = today;
+                }
+                File.AppendAllText(_logFile, line + "\n");
+            }
+        }
+        catch { /* 日志失败不影响服务 */ }
+    }
 
     static bool ValidRoom(string? room) =>
         room is { Length: 5 } && room.All(c => RoomAlphabet.Contains(c));
@@ -46,7 +108,7 @@ public static class ChenLinkServerCore
     {
         var l = new TcpListener(IPAddress.Any, port);
         l.Start();
-        Console.WriteLine($"[ChenLink 服务器] 0.0.0.0:{port}（信令 + 中继）");
+        Log($"[ChenLink 服务器] 0.0.0.0:{port}（信令 + 中继）");
         try
         {
             while (!ct.IsCancellationRequested)
@@ -61,6 +123,13 @@ public static class ChenLinkServerCore
 
     static async Task HandleAsync(TcpClient c)
     {
+        string ip = RemoteIp(c);
+        if (!TryAcquireConnection(ip))
+        {
+            Log($"连接被限流拒绝：{ip}（超过每 IP {MaxConnectionsPerIp} 条并发连接）");
+            try { c.Close(); } catch { }
+            return;
+        }
         try
         {
             var s = c.GetStream();
@@ -78,7 +147,8 @@ public static class ChenLinkServerCore
                 await HandleControlAsync(c, s, h);
             else c.Close();
         }
-        catch (Exception e) { Console.WriteLine("连接异常：" + e.Message); try { c.Close(); } catch { } }
+        catch (Exception e) { Log("连接异常：" + e.Message); try { c.Close(); } catch { } }
+        finally { ReleaseConnection(ip); }
     }
 
     // ---------- 控制连接：登记房间 + 配对 ----------
@@ -87,6 +157,7 @@ public static class ChenLinkServerCore
     {
         h.Room = h.Room?.Trim().ToUpperInvariant() ?? "";
         h.Name = CleanName(h.Name);
+        h.Secret = h.Secret?.Trim() ?? "";
         h.Lan = (h.Lan ?? Array.Empty<string>())
             .Where(x => IPAddress.TryParse(x, out var ip) && ip.AddressFamily == AddressFamily.InterNetwork)
             .Distinct(StringComparer.Ordinal)
@@ -113,6 +184,7 @@ public static class ChenLinkServerCore
             Name = h.Name,
             Port = h.Port,
             Lan = h.Lan,
+            Secret = h.Secret,
         };
         string myIp = RemoteIp(c);
         string err = "";
@@ -123,16 +195,18 @@ public static class ChenLinkServerCore
             if (h.Role == "host")
             {
                 if (Rooms.ContainsKey(h.Room)) err = "房间码已被占用，请重新创建房间";
-                else Rooms[h.Room] = new RoomState { Host = ctrl };
+                else if (!CanCreateRoom(myIp)) err = "创建房间过于频繁，请稍后再试";
+                else Rooms[h.Room] = new RoomState { Host = ctrl, Secret = h.Secret };
             }
             else
             {
                 if (!Rooms.TryGetValue(h.Room, out var room) || room.Host is null)
                 {
                     err = "房间不存在或房主已离线";
-                    Console.WriteLine($"[join] 房间 {h.Room} 不存在(hasKey={Rooms.ContainsKey(h.Room)})");
+                    Log($"[join] 房间 {h.Room} 不存在(hasKey={Rooms.ContainsKey(h.Room)})");
                 }
                 else if (room.Join is not null) err = "房间已满";
+                else if (room.Secret != h.Secret) err = "房间口令错误";
                 else { room.Join = ctrl; host = room.Host; join = ctrl; }
             }
         }
@@ -144,12 +218,15 @@ public static class ChenLinkServerCore
             return;
         }
 
+        // 控制连接心跳：90s 无消息即断开（客户端每 25s 发 Ping）
+        using var cts = new CancellationTokenSource();
+        cts.CancelAfter(TimeSpan.FromSeconds(90));
         try
         {
             await ctrl.W.WriteAsync(Wire.Line(new YouMsg { Ip = myIp }));
             if (h.Role == "host")
             {
-                Console.WriteLine($"[{h.Room}] 房主 {h.Name} 创建房间");
+                Log($"[{h.Room}] 房主 {h.Name} 创建房间");
             }
             else
             {
@@ -157,18 +234,25 @@ public static class ChenLinkServerCore
                 await host.W.WriteLineAsync(Wire.Line(new GoMsg { Room = h.Room }));
                 await join!.W.WriteLineAsync(Wire.Line(new PeerMsg { Peer = ToPeer(host) }));
                 await join.W.WriteLineAsync(Wire.Line(new GoMsg { Room = h.Room }));
-                Console.WriteLine($"[{h.Room}] 玩家 {h.Name} 加入，双方开始打通");
+                Log($"[{h.Room}] 玩家 {h.Name} 加入，双方开始打通");
             }
 
             while (true)
             {
-                var line = await ctrl.R.ReadLineAsync();
+                var line = await ctrl.R.ReadLineAsync(cts.Token);
+                cts.CancelAfter(TimeSpan.FromSeconds(90)); // 收到任意消息即重置超时
                 if (line is null) break;
                 if (string.IsNullOrWhiteSpace(line)) continue;
                 var r = Wire.Parse<Dictionary<string, object?>>(line);
-                if (r?.GetValueOrDefault("t")?.ToString() == Msg.Bye) break;
+                var t = r?.GetValueOrDefault("t")?.ToString();
+                if (t == Msg.Bye) break;
+                if (t == Msg.Ping)
+                {
+                    try { await ctrl.W.WriteAsync(Wire.Line(new PongMsg())); } catch { break; }
+                }
             }
         }
+        catch (OperationCanceledException) { Log($"[{ctrl.Room}] {ctrl.Name} 心跳超时（90s 无消息），断开"); }
         catch { /* 断开即清理 */ }
 
         await RemoveAsync(ctrl);
@@ -211,7 +295,7 @@ public static class ChenLinkServerCore
                 await peer.W.WriteAsync(Wire.Line(new ByeMsg { Why = ctrl.Role == "host" ? "房主已离开" : "玩家已离开" }));
             }
             catch { }
-            Console.WriteLine($"[{ctrl.Room}] {ctrl.Name} 离开");
+            Log($"[{ctrl.Room}] {ctrl.Name} 离开");
         }
     }
 

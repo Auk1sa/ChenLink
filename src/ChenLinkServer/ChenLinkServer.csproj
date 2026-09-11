@@ -11,6 +11,7 @@
     <Compile Include="..\ChenLink\Engine\Protocol.cs" Link="Engine\Protocol.cs" />
     <Compile Include="..\ChenLink\Engine\Mux.cs" Link="Engine\Mux.cs" />
     <Compile Include="..\ChenLink\Engine\Session.cs" Link="Engine\Session.cs" />
+    <Compile Include="..\ChenLink\Engine\AesGcmStream.cs" Link="Engine\AesGcmStream.cs" />
   </ItemGroup>
 </Project>
 

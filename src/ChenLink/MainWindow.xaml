@@ -199,6 +199,7 @@
                                     <ComboBoxItem Content="自定义端口" Tag=""/>
                                 </ComboBox>
                                 <TextBox x:Name="GamePort" Header="游戏端口（MC=25565）" PlaceholderText="例如 25565"/>
+                                <TextBox x:Name="RoomSecret" Header="房间口令（可选，留空无口令）" PlaceholderText="留空则无口令"/>
                                 <Button x:Name="CreateBtn" Content="＋ 创建房间" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Stretch" Click="CreateBtn_Click"/>
                                 <StackPanel x:Name="HostCodePanel" Visibility="Collapsed" Spacing="6" Margin="0,6,0,0">
                                     <TextBlock Text="房间码（发给好友加入）" Opacity="0.7" HorizontalAlignment="Center"/>
@@ -211,6 +212,7 @@
                                 <TextBlock Text="玩家 · 加入好友" FontWeight="SemiBold"/>
                                 <TextBox x:Name="RoomCode" Header="房间码（5 位）" PlaceholderText="例如 ABC23" MaxLength="5" CharacterCasing="Upper"/>
                                 <TextBox x:Name="MapPort" Header="本机连接端口（游戏里连 127.0.0.1:此端口）" PlaceholderText="例如 25565"/>
+                                <TextBox x:Name="JoinSecret" Header="房间口令（房主设置了就填）" PlaceholderText="无口令留空"/>
                                 <Button x:Name="JoinBtn" Content="＋ 加入房间" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Stretch" Click="JoinBtn_Click"/>
                                 <TextBlock x:Name="JoinHint" Text="提示：先让房主创建房间拿到房间码。" Opacity="0.55" TextWrapping="Wrap"/>
                             </StackPanel>

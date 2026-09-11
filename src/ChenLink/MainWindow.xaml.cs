@@ -329,7 +329,7 @@ public sealed partial class MainWindow : Window
         { Log("⚠️ 请填写正确的游戏端口（1-65535）"); return; }
         await RunAsync(async () =>
         {
-            var s = NewSession();
+            var s = NewSession(RoomSecret.Text.Trim());
             try { await s.CreateRoomAsync(port); }
             catch { await s.DisconnectAsync(); throw; }
             _s = s;
@@ -346,7 +346,7 @@ public sealed partial class MainWindow : Window
         { Log("⚠️ 请填写正确的本机连接端口（1-65535）"); return; }
         await RunAsync(async () =>
         {
-            var s = NewSession();
+            var s = NewSession(JoinSecret.Text.Trim());
             try { await s.JoinRoomAsync(code, port); }
             catch { await s.DisconnectAsync(); throw; }
             _s = s;
@@ -436,9 +436,9 @@ public sealed partial class MainWindow : Window
 
     // ---------- 逻辑 ----------
 
-    Session NewSession()
+    Session NewSession(string secret = "")
     {
-        var s = new Session(ServerBox.Text.Trim(), NameBox.Text.Trim());
+        var s = new Session(ServerBox.Text.Trim(), NameBox.Text.Trim(), secret);
         s.Log += m => _dq.TryEnqueue(() => Log(m));
         s.Changed += () => _dq.TryEnqueue(Refresh);
         s.PeerLeft += () => _dq.TryEnqueue(async () => await StopAsync("对方已离开，已断开"));
@@ -498,6 +498,7 @@ public sealed partial class MainWindow : Window
         {
             SessionState.Waiting => s.Role == Role.Host ? "等待好友加入…" : "等待房主就绪…",
             SessionState.Punching => "正在打通链路…",
+            SessionState.Reconnecting => "链路中断，正在自动重连…",
             SessionState.Ready => "已就绪，可以进游戏了！",
             SessionState.Failed => "出错了",
             _ => "空闲",
@@ -508,7 +509,7 @@ public sealed partial class MainWindow : Window
             : s.Mode == "中继" ? Microsoft.UI.Colors.Orange : Microsoft.UI.Colors.Gray);
         ChanText.Text = $"游戏连接：{s.Channels}";
         BytesText.Text = $"流量：↑ {Human(s.BytesUp)} ↓ {Human(s.BytesDown)}";
-        StopBtn.Visibility = s.State is SessionState.Ready or SessionState.Punching or SessionState.Waiting
+        StopBtn.Visibility = s.State is SessionState.Ready or SessionState.Punching or SessionState.Waiting or SessionState.Reconnecting
             ? Visibility.Visible : Visibility.Collapsed;
         if (s.State == SessionState.Failed) _ = Task.Run(async () => { await Task.Delay(1200); _dq.TryEnqueue(() => { if (_s == s) _ = StopAsync("会话出错，已自动断开"); }); });
     }
@@ -522,6 +523,7 @@ public sealed partial class MainWindow : Window
 
     void Log(string msg)
     {
+        AppLog.Write(msg);
         _logs.Add($"[{DateTime.Now:HH:mm:ss}] {msg}");
         while (_logs.Count > 300) _logs.RemoveAt(0);
         if (LogList.Items.Count > 0)
@@ -688,11 +690,13 @@ public sealed partial class MainWindow : Window
         _etScanning = true;
         try
         {
-            foreach (var p in peers)
+            // 并行探测所有 peer 的端口，比串行快 N 倍
+            var results = await Task.WhenAll(peers.Select(p => EasyTierRunner.IsPortOpenAsync(p.Ipv4, _etPort)));
+            for (int i = 0; i < peers.Count; i++)
             {
-                if (await EasyTierRunner.IsPortOpenAsync(p.Ipv4, _etPort))
+                if (results[i])
                 {
-                    _etFound = $"{p.Ipv4}:{_etPort}";
+                    _etFound = $"{peers[i].Ipv4}:{_etPort}";
                     _etUdpOnly = false;
                     _dq.TryEnqueue(() =>
                     {
@@ -703,7 +707,7 @@ public sealed partial class MainWindow : Window
                 }
             }
             // UDP 协议没有通用“端口探测”，直接把对端虚拟 IP 亮出来，供 UDP 游戏（如基岩版）手填连接
-            // ponytail: 两人房这里就是房主；多人房要选人时再加下拉
+            // 两人房这里就是房主；多人房要选人时再加下拉
             _etUdpOnly = true;
             _etFound = $"{peers[0].Ipv4}:{_etPort}";
             _dq.TryEnqueue(() =>

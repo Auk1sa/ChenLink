@@ -1,0 +1,30 @@
+name: build
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-selftest:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore ChenLink.sln
+
+      - name: Build (Server + Engine)
+        run: dotnet build src/ChenLinkServer/ChenLinkServer.csproj -c Release --no-restore
+
+      - name: Build (Client WinUI)
+        run: dotnet build src/ChenLink/ChenLink.csproj -c Release -p:Platform=x64 --no-restore
+
+      - name: SelfTest (直连 + 中继 + 端口冲突)
+        run: dotnet run --project src/ChenLinkServer -c Release --no-build -- --selftest

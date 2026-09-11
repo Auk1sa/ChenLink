@@ -5,6 +5,7 @@
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace ChenLink.Engine;
@@ -16,6 +17,7 @@ public enum SessionState
     Idle,       // 未开始
     Waiting,    // 房间已建/已加入，等对方
     Punching,   // 双方到齐，正在打通
+    Reconnecting, // 链路中断，正在自动重连
     Ready,      // 链路就绪（Mode 区分 直连/中继）
     Stopped,    // 已停止
     Failed,     // 出错
@@ -32,6 +34,7 @@ public sealed class Session : IAsyncDisposable
     public Role Role { get; private set; }
     public string Room { get; private set; } = "";
     public string ServerText { get; }
+    public string Secret { get; }   // 房间口令（可选，空表示无口令）
 
     public SessionState State { get; private set; } = SessionState.Idle;
     public string Mode { get; private set; } = "—";          // 直连 / 中继
@@ -55,7 +58,7 @@ public sealed class Session : IAsyncDisposable
     int _listenPort;                        // join：本机映射监听端口
     int _bindPort;                          // 直连尝试使用的本地端口
     string[] _lan = Array.Empty<string>();
-    string _myIp = "";
+    volatile string _myIp = "";
 
     TcpClient? _ctl;
     StreamReader? _cr;
@@ -68,13 +71,14 @@ public sealed class Session : IAsyncDisposable
     TcpListener? _listener;
     volatile bool _stopping;
     UdpClient? _udp;            // UDP 转发套接字（host: 发往游戏服 / join: 收本地游戏客户端）
-    IPEndPoint? _udpTarget;     // host: 游戏服 127.0.0.1:_gamePort；join: 本地游戏客户端最近来源
+    volatile IPEndPoint? _udpTarget;     // host: 游戏服 127.0.0.1:_gamePort；join: 本地游戏客户端最近来源
     volatile bool _udpActive;   // 已出现过 UDP 流量（连接数显示为 1）
 
-    public Session(string server, string name)
+    public Session(string server, string name, string secret = "")
     {
         ServerText = server;
         Name = string.IsNullOrWhiteSpace(name) ? Environment.MachineName : name.Trim();
+        Secret = secret?.Trim() ?? "";
         var (h, p) = SplitHostPort(server, DefaultPort);
         _serverHost = h;
         _serverPort = p;
@@ -131,8 +135,9 @@ public sealed class Session : IAsyncDisposable
         _cw = new StreamWriter(_ctl.GetStream(), new UTF8Encoding(false)) { AutoFlush = true };
         EmitLog($"已连接信令服务器 {_serverHost}:{_serverPort}");
 
-        await SendAsync(new HelloMsg { Room = Room, Role = role == Role.Host ? "host" : "join", Name = Name, Port = _bindPort, Lan = _lan }, ct);
+        await SendAsync(new HelloMsg { Room = Room, Role = role == Role.Host ? "host" : "join", Name = Name, Port = _bindPort, Lan = _lan, Secret = Secret }, ct);
         _ = Task.Run(() => ControlLoopAsync(ct));
+        _ = Task.Run(() => HeartbeatLoopAsync(ct));
     }
 
     async Task ControlLoopAsync(CancellationToken ct)
@@ -173,6 +178,11 @@ public sealed class Session : IAsyncDisposable
                         EmitLog("服务器：" + em);
                         SetState(SessionState.Failed, em);
                         break;
+                    case Msg.Ping:
+                        try { await SendAsync(new PongMsg(), ct); } catch { }
+                        break;
+                    case Msg.Pong:
+                        break; // 心跳应答，无需处理
                 }
             }
         }
@@ -186,13 +196,33 @@ public sealed class Session : IAsyncDisposable
 
     void MaybeStartLink()
     {
-        if (_peer is null || !_gotGo || State is SessionState.Punching or SessionState.Ready) return;
-        _ = Task.Run(() => EstablishLinkAsync(_peer));
+        if (_peer is null || !_gotGo || State is SessionState.Punching or SessionState.Ready or SessionState.Reconnecting) return;
+        var peer = _peer;
+        _ = Task.Run(async () =>
+        {
+            if (!await EstablishLinkAsync(peer))
+                SetState(SessionState.Failed, "无法与对方建立链路，请重试");
+        });
+    }
+
+    /// 控制连接心跳：每 25s 发 Ping，防 NAT 空闲断开；服务器侧有 90s 读取超时。
+    async Task HeartbeatLoopAsync(CancellationToken ct)
+    {
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(25), ct);
+                if (ct.IsCancellationRequested) break;
+                try { await SendAsync(new PingMsg(), ct); } catch { break; }
+            }
+        }
+        catch (OperationCanceledException) { }
     }
 
     // ---------- 打通链路 ----------
 
-    async Task EstablishLinkAsync(PeerInfo peer)
+    async Task<bool> EstablishLinkAsync(PeerInfo peer)
     {
         SetState(SessionState.Punching, $"对方 {peer.Name} 已就位，正在打通…");
         const int maxTries = 3;
@@ -221,7 +251,7 @@ public sealed class Session : IAsyncDisposable
                     link = rs;
                 }
                 StartLinkAsync(link);
-                return;
+                return true;
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {
@@ -229,13 +259,20 @@ public sealed class Session : IAsyncDisposable
                 StopLink();
                 if (i < maxTries) await Task.Delay(1200, _lifetime.Token);
             }
-            catch (OperationCanceledException) { return; }
+            catch (OperationCanceledException) { return false; }
         }
-        SetState(SessionState.Failed, "无法与对方建立链路，请重试");
+        return false;
     }
 
     void StartLinkAsync(Stream link)
     {
+        // 房间口令非空时启用端到端加密；双方口令经服务器校验一致，密钥相同
+        if (!string.IsNullOrEmpty(Secret))
+        {
+            var key = SHA256.HashData(Encoding.UTF8.GetBytes(Secret));
+            link = new AesGcmStream(link, key);
+            EmitLog("🔒 已启用端到端加密（AES-GCM）");
+        }
         var mux = new Mux(link);
         _mux = mux;
         mux.Failed += msg => Task.Run(() => OnLinkBroken(msg));
@@ -327,9 +364,36 @@ public sealed class Session : IAsyncDisposable
     {
         EmitLog("链路中断：" + msg);
         StopLink();
+        // 仅在非 Failed 状态下自动重连；若已是 Failed（如本地端口占用），说明是本地错误，重连无意义
+        if (_peer is not null && !_stopping && State != SessionState.Failed)
+        {
+            _ = Task.Run(() => ReconnectAsync());
+        }
+        else
+        {
+            _peer = null;
+            _gotGo = false;
+            if (State != SessionState.Failed)
+                SetState(SessionState.Failed, "链路中断，请重新加入");
+        }
+    }
+
+    /// 链路中断后自动重连：保留 _peer，递增等待后重新 EstablishLinkAsync。
+    async Task ReconnectAsync()
+    {
+        const int maxReconnect = 2;
+        for (int attempt = 1; attempt <= maxReconnect && !_stopping; attempt++)
+        {
+            SetState(SessionState.Reconnecting, $"链路中断，第 {attempt}/{maxReconnect} 次重连…");
+            try { await Task.Delay(1500 * attempt, _lifetime.Token); }
+            catch (OperationCanceledException) { return; }
+            var peer = _peer;
+            if (peer is null) break;
+            if (await EstablishLinkAsync(peer)) return;
+        }
         _peer = null;
         _gotGo = false;
-        SetState(SessionState.Failed, "链路中断，请重新加入");
+        SetState(SessionState.Failed, "重连失败，请重新加入");
     }
 
     void StopLink()
