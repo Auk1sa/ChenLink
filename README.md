@@ -7,7 +7,6 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-blue.svg" alt="License: Apache-2.0"></a>
-  <a href="https://github.com/Auk1sa/ChenLink/actions/workflows/ci.yml"><img src="https://github.com/Auk1sa/ChenLink/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/Platform-Windows%2010%2F11-0078d4.svg" alt="Platform: Windows 10/11">
   <img src="https://img.shields.io/badge/.NET-8-512BD4.svg" alt=".NET 8">
 </p>
@@ -28,11 +27,12 @@
   - **旧模式（自建服务器）**：使用自己部署的信令/中继服务器，客户端也内置服务器，单机即可演示。
 - 🔀 **直连优先，中继兜底**：同网直连 / TCP 同时打开打洞 / 服务器中继，按顺序自动选择。
 - 🖥️ **现代 WinUI 3 界面**：深色主题、自绘标题栏、实时状态与流量统计。
+- 🧭 **托盘与关闭策略**：支持托盘右键菜单与双击恢复；关闭时可选每次询问、最小化到托盘或完全退出。
 - 📦 **单文件自包含**：目标机器无需安装 .NET 运行时或 Windows App SDK。
 
 ## 📦 安装 / 获取
 
-当前版本：**V1**。有两种方式获得程序：
+当前版本：**V1.1.0**。有两种方式获得程序：
 
 1. **下载单文件版**：前往 [Releases](https://github.com/Auk1sa/ChenLink/releases) 下载 `ChenLink.exe`。
 2. **自己构建**：见下方 [从源码构建](#-从源码构建)。
@@ -119,7 +119,6 @@ src/
     native/            EasyTier / wintun 等第三方二进制（见 THIRD_PARTY_NOTICES.md）
   ChenLinkServer/      信令 + 中继服务器（单文件，跨平台，可放公网 VPS）
 docs/                  GitHub Pages 展示页（静态站点）
-.github/workflows/     CI：自动部署 GitHub Pages
 ```
 
 ## 🧠 工作原理
@@ -180,6 +179,7 @@ docs/                  GitHub Pages 展示页（静态站点）
 - 本项目自身代码以 **Apache License 2.0** 发布，见 [LICENSE](LICENSE)。
 - 内置的 EasyTier / wintun 等第三方二进制为 **LGPL-3.0 / 各自许可证**，以独立子进程方式调用、未链接，
   许可与源码信息见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+- 托盘组件 H.NotifyIcon 以 **MIT License** 使用，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 ## 🙏 致谢
 
@@ -188,3 +188,4 @@ docs/                  GitHub Pages 展示页（静态站点）
   TCP 同时打开打洞替代 QUIC/UDP 打洞，服务器中继替代共享节点中继。
 - [EasyTier](https://github.com/EasyTier/EasyTier)（LGPL-3.0）：提供跨公网虚拟组网能力。
 - [WireGuard / wintun](https://www.wintun.net/)：提供虚拟网卡驱动。
+- [H.NotifyIcon](https://github.com/HavenDV/H.NotifyIcon)（MIT）：提供系统托盘图标支持。

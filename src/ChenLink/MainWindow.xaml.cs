@@ -29,12 +29,17 @@ public sealed partial class MainWindow : Window
     bool _etScanning;
     bool _etUdpOnly;
     bool _settingUi;
+    H.NotifyIcon.Core.TrayIconWithContextMenu? _trayIcon;
+    bool _exiting;
+    bool _closePromptOpen;
     readonly AppSettings _settings = AppSettings.Load();
     const string AutoRunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
 
     public MainWindow()
     {
         InitializeComponent();
+        InitializeTrayIcon();
+        AppWindow.Closing += OnAppWindowClosing;
         // 内容延伸到标题栏：去掉“资源管理器”式系统标题，自绘顶栏 + 深色系统按钮
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(TitleDragRegion);
@@ -54,6 +59,7 @@ public sealed partial class MainWindow : Window
         try { SystemBackdrop = new MicaBackdrop(); } catch { /* 低版本系统忽略 */ }
         Closed += async (_, _) =>
         {
+            try { _trayIcon?.Dispose(); } catch { }
             try { _srvCts?.Cancel(); } catch { }
             try { if (_s is not null) await _s.DisconnectAsync(); } catch { }
             try { if (_et is not null) await _et.StopAsync(); } catch { }
@@ -63,6 +69,7 @@ public sealed partial class MainWindow : Window
         _settingUi = true;
         AutoStartSwitch.IsOn = _settings.AutoStart;
         AutoProbeSwitch.IsOn = _settings.AutoProbe;
+        CloseActionBox.SelectedIndex = _settings.CloseAction is >= 0 and <= 2 ? _settings.CloseAction : 0;
         _settingUi = false;
         SetAutoStart(_settings.AutoStart);
         if (_settings.AutoProbe)
@@ -105,7 +112,121 @@ public sealed partial class MainWindow : Window
         SyncMaxIcon();
     }
 
-    void TitleCloseBtn_Click(object sender, RoutedEventArgs e) => Close();
+    void TitleCloseBtn_Click(object sender, RoutedEventArgs e) => RequestClose();
+
+    void InitializeTrayIcon()
+    {
+        var iconPath = ExtractIconToTemp();
+        if (iconPath is not null && _appIcon == IntPtr.Zero)
+            _appIcon = LoadImage(IntPtr.Zero, iconPath, 1 /*IMAGE_ICON*/, 0, 0, 0x10 /*LR_LOADFROMFILE*/);
+
+        var menu = new H.NotifyIcon.Core.PopupMenu();
+        menu.Items.Add(new H.NotifyIcon.Core.PopupMenuItem("显示窗口", (_, _) => RunOnUi(RestoreFromTray)));
+        menu.Items.Add(new H.NotifyIcon.Core.PopupMenuSeparator());
+        menu.Items.Add(new H.NotifyIcon.Core.PopupMenuItem("退出程序", (_, _) => RunOnUi(ExitApp)));
+
+        _trayIcon = new H.NotifyIcon.Core.TrayIconWithContextMenu
+        {
+            Icon = _appIcon != IntPtr.Zero ? _appIcon : System.Drawing.SystemIcons.Application.Handle,
+            ToolTip = "ChenLink",
+            ContextMenu = menu
+        };
+        _trayIcon.MessageWindow.MouseEventReceived += (_, e) =>
+        {
+            if (e.MouseEvent == H.NotifyIcon.Core.MouseEvent.IconLeftDoubleClick)
+                RunOnUi(RestoreFromTray);
+        };
+        _trayIcon.Create();
+    }
+
+    void RunOnUi(Action action) => _dq.TryEnqueue(() => action());
+
+    void RestoreFromTray()
+    {
+        AppWindow.Show();
+        if (AppWindow.Presenter is OverlappedPresenter p && p.State == OverlappedPresenterState.Minimized)
+            p.Restore();
+        Activate();
+    }
+
+    void OnAppWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)
+    {
+        if (_exiting) return;
+
+        args.Cancel = true;
+        RequestClose();
+    }
+
+    void RequestClose()
+    {
+        if (_settings.CloseAction == 1)
+        {
+            AppWindow.Hide();
+            return;
+        }
+        if (_settings.CloseAction == 2)
+        {
+            ExitApp();
+            return;
+        }
+
+        if (!_closePromptOpen)
+            _ = PromptCloseAsync();
+    }
+
+    async Task PromptCloseAsync()
+    {
+        _closePromptOpen = true;
+        try
+        {
+            var remember = new CheckBox { Content = "记住我的选择，下次不再询问" };
+            var dialog = new ContentDialog
+            {
+                XamlRoot = Content.XamlRoot,
+                Title = "关闭确认",
+                Content = new StackPanel
+                {
+                    Spacing = 10,
+                    Children =
+                    {
+                        new TextBlock { Text = "点击关闭按钮时执行：" },
+                        remember
+                    }
+                },
+                PrimaryButtonText = "最小化到托盘",
+                SecondaryButtonText = "完全退出",
+                CloseButtonText = "取消",
+                DefaultButton = ContentDialogButton.Primary
+            };
+
+            var result = await dialog.ShowAsync();
+            if (result == ContentDialogResult.None) return;
+
+            int selected = result == ContentDialogResult.Primary ? 1 : 2;
+            if (remember.IsChecked == true)
+            {
+                _settings.CloseAction = selected;
+                _settings.Save();
+                _settingUi = true;
+                CloseActionBox.SelectedIndex = selected;
+                _settingUi = false;
+            }
+
+            if (selected == 1) AppWindow.Hide();
+            else ExitApp();
+        }
+        finally
+        {
+            _closePromptOpen = false;
+        }
+    }
+
+    void ExitApp()
+    {
+        _exiting = true;
+        _trayIcon?.Dispose();
+        Close();
+    }
 
     void SyncMaxIcon()
     {
@@ -608,7 +729,7 @@ public sealed partial class MainWindow : Window
             };
             Process.Start(psi);
             Log("需要管理员权限，已请求以管理员身份重启，请在新窗口继续操作。");
-            Close();
+            ExitApp();
         }
         catch { Log("❌ 无法获取管理员权限：请右键 ChenLink.exe → 以管理员身份运行"); }
         return false;
@@ -656,6 +777,19 @@ public sealed partial class MainWindow : Window
         Log(_settings.AutoProbe ? "✅ 下次启动将自动获取可用公共节点" : "已关闭启动自动探测");
     }
 
+    void CloseActionBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_settingUi) return;
+        _settings.CloseAction = CloseActionBox.SelectedIndex;
+        _settings.Save();
+        Log(_settings.CloseAction switch
+        {
+            1 => "关闭软件时将最小化到托盘",
+            2 => "关闭软件时将完全退出",
+            _ => "关闭软件时每次询问"
+        });
+    }
+
     static void SetAutoStart(bool on)
     {
         try
@@ -672,6 +806,7 @@ public sealed partial class MainWindow : Window
     {
         public bool AutoStart { get; set; }
         public bool AutoProbe { get; set; }
+        public int CloseAction { get; set; } // 0=询问，1=最小化到托盘，2=退出
 
         static string Path() => System.IO.Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ChenLink", "settings.json");

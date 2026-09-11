@@ -55,6 +55,11 @@
                                       OnContent="已开启" OffContent="已关闭" Toggled="AutoStartSwitch_Toggled"/>
                         <ToggleSwitch x:Name="AutoProbeSwitch" Header="每次启动自动获取可用公共节点"
                                       OnContent="已开启" OffContent="已关闭" Toggled="AutoProbeSwitch_Toggled"/>
+                        <ComboBox x:Name="CloseActionBox" Header="关闭软件时" SelectionChanged="CloseActionBox_SelectionChanged">
+                            <ComboBoxItem Content="每次询问"/>
+                            <ComboBoxItem Content="最小化到托盘"/>
+                            <ComboBoxItem Content="完全退出"/>
+                        </ComboBox>
                         <TextBlock Text="提示：本程序需要管理员权限，开机自启动时 Windows 会在登录后弹一次 UAC 确认。"
                                    Opacity="0.55" FontSize="11" TextWrapping="Wrap"/>
                     </StackPanel>
