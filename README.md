@@ -138,6 +138,24 @@ docs/                  GitHub Pages 展示页（静态站点）
 - UDP 游戏的数据报会封装进同一条 TCP 链路转发（端口号不变，无需额外开端口）；对延迟极敏感的对战可优先用“无公网 IP 模式”（EasyTier 虚拟局域网）。
 - 映射端口只监听 `127.0.0.1`，避免局域网他人误连。
 
+## 👥 作者
+
+<p align="center">
+  <a href="https://github.com/Auk1sa">
+    <img src="https://github.com/Auk1sa.png?size=192" width="96" height="96" alt="Auk1sa">
+  </a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/Godhuxx66">
+    <img src="https://github.com/Godhuxx66.png?size=192" width="96" height="96" alt="Godhuxx66">
+  </a>
+</p>
+
+<p align="center">
+  <strong>作者：</strong><a href="https://github.com/Auk1sa">Auk1sa</a>
+  &nbsp;·&nbsp;
+  <strong>合作者：</strong><a href="https://github.com/Godhuxx66">Godhuxx66</a>
+</p>
+
 ## 🤝 贡献
 
 欢迎提交 Issue 与 PR。请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
