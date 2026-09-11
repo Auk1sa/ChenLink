@@ -146,15 +146,23 @@ docs/                  GitHub Pages 展示页（静态站点）
 
 <table align="center" role="presentation">
   <tr>
-    <td align="center" width="240">
+    <td align="center" width="260">
       <img src="https://avatars.githubusercontent.com/Auk1sa" width="112" height="112" alt="Auk1sa">
+      <br><br>
+      <strong>Auk1sa</strong>
       <br>
-      <img src="https://img.shields.io/badge/OWNER-Auk1sa-2ea44f?style=for-the-badge&amp;logo=github&amp;logoColor=white&amp;labelColor=0d1117" alt="Auk1sa · Owner">
+      <sub>项目作者 · Owner</sub>
+      <br><br>
+      <img src="https://img.shields.io/badge/CHENLINK-TEAM-2ea44f?style=for-the-badge&amp;logo=github&amp;logoColor=white&amp;labelColor=0d1117" alt="ChenLink Team">
     </td>
-    <td align="center" width="240">
+    <td align="center" width="260">
       <img src="https://avatars.githubusercontent.com/Godhuxx66" width="112" height="112" alt="Godhuxx66">
+      <br><br>
+      <strong>Godhuxx66</strong>
       <br>
-      <img src="https://img.shields.io/badge/COLLABORATOR-Godhuxx66-0969da?style=for-the-badge&amp;logo=github&amp;logoColor=white&amp;labelColor=0d1117" alt="Godhuxx66 · Collaborator">
+      <sub>合作者 · Collaborator</sub>
+      <br><br>
+      <img src="https://img.shields.io/badge/CHENLINK-TEAM-0969da?style=for-the-badge&amp;logo=github&amp;logoColor=white&amp;labelColor=0d1117" alt="ChenLink Team">
     </td>
   </tr>
 </table>
