@@ -144,17 +144,20 @@ docs/                  GitHub Pages 展示页（静态站点）
   <sub>ChenLink 项目团队 · 让跨网络联机更简单</sub>
 </p>
 
-<p align="center">
-  <img src="https://avatars.githubusercontent.com/Auk1sa" width="112" height="112" alt="Auk1sa">
-  <br>
-  <img src="https://img.shields.io/badge/OWNER-Auk1sa-2ea44f?style=for-the-badge&amp;logo=github&amp;logoColor=white&amp;labelColor=0d1117" alt="Auk1sa · Owner">
-</p>
-
-<p align="center">
-  <img src="https://avatars.githubusercontent.com/Godhuxx66" width="112" height="112" alt="Godhuxx66">
-  <br>
-  <img src="https://img.shields.io/badge/COLLABORATOR-Godhuxx66-0969da?style=for-the-badge&amp;logo=github&amp;logoColor=white&amp;labelColor=0d1117" alt="Godhuxx66 · Collaborator">
-</p>
+<table align="center" role="presentation">
+  <tr>
+    <td align="center" width="240">
+      <img src="https://avatars.githubusercontent.com/Auk1sa" width="112" height="112" alt="Auk1sa">
+      <br>
+      <img src="https://img.shields.io/badge/OWNER-Auk1sa-2ea44f?style=for-the-badge&amp;logo=github&amp;logoColor=white&amp;labelColor=0d1117" alt="Auk1sa · Owner">
+    </td>
+    <td align="center" width="240">
+      <img src="https://avatars.githubusercontent.com/Godhuxx66" width="112" height="112" alt="Godhuxx66">
+      <br>
+      <img src="https://img.shields.io/badge/COLLABORATOR-Godhuxx66-0969da?style=for-the-badge&amp;logo=github&amp;logoColor=white&amp;labelColor=0d1117" alt="Godhuxx66 · Collaborator">
+    </td>
+  </tr>
+</table>
 
 ## 🤝 贡献
 
