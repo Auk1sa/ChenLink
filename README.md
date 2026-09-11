@@ -144,28 +144,23 @@ docs/                  GitHub Pages 展示页（静态站点）
   <sub>ChenLink 项目团队 · 让跨网络联机更简单</sub>
 </p>
 
-<table align="center">
-  <tr>
-    <td align="center" width="240">
-      <a href="https://github.com/Auk1sa">
-        <img src="https://wsrv.nl/?url=github.com/Auk1sa.png&amp;w=240&amp;h=240&amp;fit=cover&amp;mask=circle&amp;maxage=1d" width="120" height="120" alt="Auk1sa">
-      </a>
-      <br><br>
-      <a href="https://github.com/Auk1sa"><strong>Auk1sa</strong></a>
-      <br>
-      <sub>项目作者 · 维护者</sub>
-    </td>
-    <td align="center" width="240">
-      <a href="https://github.com/Godhuxx66">
-        <img src="https://wsrv.nl/?url=github.com/Godhuxx66.png&amp;w=240&amp;h=240&amp;fit=cover&amp;mask=circle&amp;maxage=1d" width="120" height="120" alt="Godhuxx66">
-      </a>
-      <br><br>
-      <a href="https://github.com/Godhuxx66"><strong>Godhuxx66</strong></a>
-      <br>
-      <sub>合作者 · 贡献者</sub>
-    </td>
-  </tr>
-</table>
+<p align="center">
+  <a href="https://github.com/Auk1sa">
+    <img src="https://wsrv.nl/?url=github.com/Auk1sa.png&amp;w=240&amp;h=240&amp;fit=cover&amp;mask=circle&amp;maxage=1d" width="112" height="112" alt="Auk1sa">
+  </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/Godhuxx66">
+    <img src="https://wsrv.nl/?url=github.com/Godhuxx66.png&amp;w=240&amp;h=240&amp;fit=cover&amp;mask=circle&amp;maxage=1d" width="112" height="112" alt="Godhuxx66">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Auk1sa"><strong>Auk1sa</strong></a>
+  <sub>项目作者 · 维护者</sub>
+  &nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="https://github.com/Godhuxx66"><strong>Godhuxx66</strong></a>
+  <sub>合作者 · 贡献者</sub>
+</p>
 
 ## 🤝 贡献
 
