@@ -2,7 +2,7 @@
 
 All notable changes to ChenLink are documented in this file.
 
-## V1.3.0 - 未发布
+## V1.3.0 - 2026-10-18
 
 界面与代码结构的整体重构。网络行为（直连 / 打洞 / 中继 / 加密）不变，主要是把原本堆在
 `MainWindow.xaml.cs`（860 行）里的逻辑拆开，并把界面重做成统一的设计系统。

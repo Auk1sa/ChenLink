@@ -36,10 +36,14 @@
 
 当前版本：**V1.3.0**。有两种方式获得程序：
 
-1. **下载单文件版**：前往 [Releases](https://github.com/Auk1sa/ChenLink/releases) 下载 `ChenLink.exe`。
+1. **下载单文件版（推荐）**：前往 [Releases](https://github.com/Auk1sa/ChenLink/releases/latest) 下载
+   `ChenLink-v1.3.0-win-x64.exe`（约 90 MB）。**一个文件，双击即用** —— .NET 8 运行时、Windows App SDK、
+   EasyTier / wintun 全部内置，目标机器不需要装任何东西。
 2. **自己构建**：见下方 [从源码构建](#-从源码构建)。
 
-> 需要 **Windows 10/11（64 位）**。无公网 IP 模式需要**管理员权限**（用于安装 EasyTier 虚拟网卡）。
+> 需要 **Windows 10 1809 及以上 / Windows 11（64 位）**。无公网 IP 模式需要**管理员权限**（用于安装 EasyTier 虚拟网卡）。
+>
+> 首次运行 Windows SmartScreen 可能提示「已保护你的电脑」，点「更多信息 → 仍要运行」即可（当前未做代码签名）。
 
 ## 🚀 快速开始（源码版）
 
