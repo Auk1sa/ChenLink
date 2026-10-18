@@ -12,6 +12,18 @@ namespace ChenLink.Engine;
 
 public enum Role { Host, Join }
 
+/// <summary>会话级可读错误（房间不存在、口令错误、服务器连不上…），供界面直接展示。</summary>
+public class SessionException : Exception
+{
+    public SessionException(string message) : base(message) { }
+}
+
+/// <summary>房主创建房间时房间码被占用，可自动换一个码重试。</summary>
+public sealed class RoomTakenException : SessionException
+{
+    public RoomTakenException(string message) : base(message) { }
+}
+
 public enum SessionState
 {
     Idle,       // 未开始
@@ -43,6 +55,21 @@ public sealed class Session : IAsyncDisposable
     public int Channels => _channels;
     public long BytesUp { get; private set; }
     public long BytesDown { get; private set; }
+
+    /// <summary>端到端延迟（毫秒），-1 表示未测得。由 Mux 的 PING/PONG 探测。</summary>
+    public int LatencyMs => _mux?.LatencyMs ?? -1;
+
+    /// <summary>玩家侧本机映射地址；房主侧为空。</summary>
+    public string LocalAddress => Role == Role.Join && _listenPort > 0 ? $"127.0.0.1:{_listenPort}" : "";
+
+    /// <summary>房主侧被映射的游戏端口。</summary>
+    public int GamePort => _gamePort;
+
+    public string LastError { get; private set; } = "";
+
+    /// <summary>握手阶段（等服务器确认登记）为 true，此期间不把断线当作会话失败处理。</summary>
+    bool _registering;
+    TaskCompletionSource<Exception?>? _registered;
 
     public event Action<string>? Log;      // 文本日志
     void EmitLog(string m) => Log?.Invoke(m);
@@ -87,13 +114,29 @@ public sealed class Session : IAsyncDisposable
 
     // ---------- 公共入口 ----------
 
-    /// 房主：开一个房间，把自己的游戏端口暴露给好友。
+    /// 房主：开一个房间，把自己的游戏端口暴露给好友。房间码被占用时自动换码重试。
     public async Task CreateRoomAsync(int gamePort, CancellationToken ct = default)
     {
         _gamePort = gamePort;
-        await BeginAsync(Role.Host, await NewRoomCodeAsync(ct), ct);
-        EmitLog($"房间已创建：{Room}（等待好友输入房间码加入）");
-        SetState(SessionState.Waiting, $"等待好友加入… 房间码 {Room}");
+        const int maxAttempts = 5;
+
+        for (int attempt = 1; ; attempt++)
+        {
+            var code = NewRoomCode();
+            try
+            {
+                await BeginAsync(Role.Host, code, ct);
+            }
+            catch (RoomTakenException) when (attempt < maxAttempts)
+            {
+                EmitLog($"房间码 {code} 已被占用，自动换一个…");
+                continue;
+            }
+
+            EmitLog($"房间已创建：{Room}（等待好友输入房间码加入）");
+            SetState(SessionState.Waiting, $"等待好友加入… 房间码 {Room}");
+            return;
+        }
     }
 
     /// 玩家：输入房间码加入，并把 127.0.0.1:listenPort 映射到房主的游戏端口。
@@ -109,8 +152,7 @@ public sealed class Session : IAsyncDisposable
     {
         _stopping = true;
         _lifetime.Cancel();
-        try { _ctl?.Close(); } catch { }
-        _ctl = null;
+        CloseControl();
         StopLink();
         _stats?.Change(Timeout.Infinite, Timeout.Infinite);
         SetState(SessionState.Stopped, "已断开");
@@ -128,16 +170,62 @@ public sealed class Session : IAsyncDisposable
         _bindPort = FreePort();
         _lan = LocalIPv4();
         _stopping = false;
+        _registering = true;
+        _registered = new TaskCompletionSource<Exception?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        LastError = "";
 
-        _ctl = new TcpClient();
-        await _ctl.ConnectAsync(_serverHost, _serverPort, ct);
-        _cr = new StreamReader(_ctl.GetStream(), new UTF8Encoding(false));
-        _cw = new StreamWriter(_ctl.GetStream(), new UTF8Encoding(false)) { AutoFlush = true };
-        EmitLog($"已连接信令服务器 {_serverHost}:{_serverPort}");
+        try
+        {
+            _ctl = new TcpClient();
+            await _ctl.ConnectAsync(_serverHost, _serverPort, ct);
+            _cr = new StreamReader(_ctl.GetStream(), new UTF8Encoding(false));
+            _cw = new StreamWriter(_ctl.GetStream(), new UTF8Encoding(false)) { AutoFlush = true };
+            EmitLog($"已连接信令服务器 {_serverHost}:{_serverPort}");
 
-        await SendAsync(new HelloMsg { Room = Room, Role = role == Role.Host ? "host" : "join", Name = Name, Port = _bindPort, Lan = _lan, Secret = Secret }, ct);
-        _ = Task.Run(() => ControlLoopAsync(ct));
-        _ = Task.Run(() => HeartbeatLoopAsync(ct));
+            await SendAsync(new HelloMsg { Room = Room, Role = role == Role.Host ? "host" : "join", Name = Name, Port = _bindPort, Lan = _lan, Secret = Secret }, ct);
+            _ = Task.Run(() => ControlLoopAsync(ct));
+            _ = Task.Run(() => HeartbeatLoopAsync(ct));
+
+            // 等服务器确认登记：房间不存在 / 口令错误 / 房间码冲突 都会在这里直接变成异常，
+            // 而不是像旧版那样只写一行日志、界面继续显示「等待中」。
+            Exception? error;
+            try
+            {
+                error = await _registered.Task.WaitAsync(TimeSpan.FromSeconds(8), ct);
+            }
+            catch (TimeoutException)
+            {
+                error = new SessionException("连接服务器超时，请检查地址与网络");
+            }
+
+            if (error is not null)
+            {
+                LastError = error.Message;
+                CloseControl();
+                throw error;
+            }
+
+            EmitLog($"服务器已受理（{(role == Role.Host ? "房主" : "玩家")} · 房间 {Room}）");
+        }
+        catch (SessionException) { throw; }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception e)
+        {
+            CloseControl();
+            throw new SessionException("连接服务器失败：" + e.Message);
+        }
+        finally
+        {
+            _registering = false;
+        }
+    }
+
+    void CloseControl()
+    {
+        try { _ctl?.Close(); } catch { }
+        _ctl = null;
+        _cr = null;
+        _cw = null;
     }
 
     async Task ControlLoopAsync(CancellationToken ct)
@@ -158,6 +246,7 @@ public sealed class Session : IAsyncDisposable
                 {
                     case Msg.You:
                         _myIp = Wire.Parse<YouMsg>(line)?.Ip ?? _myIp;
+                        if (_registering) _registered?.TrySetResult(null);
                         break;
                     case Msg.Peer:
                         _peer = Wire.Parse<PeerMsg>(line)?.Peer;
@@ -176,6 +265,15 @@ public sealed class Session : IAsyncDisposable
                     case Msg.Err:
                         var em = Wire.Parse<ErrMsg>(line)?.Text ?? "未知错误";
                         EmitLog("服务器：" + em);
+                        LastError = em;
+                        if (_registering)
+                        {
+                            // 握手期错误交给 BeginAsync 抛出，界面可直接显示在输入框旁
+                            _registered?.TrySetResult(em.Contains("占用", StringComparison.Ordinal)
+                                ? new RoomTakenException(em)
+                                : new SessionException(em));
+                            break;
+                        }
                         SetState(SessionState.Failed, em);
                         break;
                     case Msg.Ping:
@@ -185,9 +283,17 @@ public sealed class Session : IAsyncDisposable
                         break; // 心跳应答，无需处理
                 }
             }
+
+            if (_registering) _registered?.TrySetResult(new SessionException("服务器已断开连接"));
         }
         catch (Exception e) when (!ct.IsCancellationRequested && !_stopping)
         {
+            if (_registering)
+            {
+                _registered?.TrySetResult(new SessionException("与服务器断开：" + e.Message));
+                return;
+            }
+
             EmitLog("信令连接断开：" + e.Message);
             PeerLeft?.Invoke();
             SetState(SessionState.Failed, "与服务器断开");
@@ -279,6 +385,7 @@ public sealed class Session : IAsyncDisposable
         if (Role == Role.Host)
             mux.Opened += id => _ = Task.Run(() => OnHostChannelAsync(mux, id));
         _ = Task.Run(() => mux.RunAsync(_lifetime.Token));
+        _ = Task.Run(() => mux.RunLatencyProbeAsync(_lifetime.Token));
         StartUdp(mux); // 除 TCP 外，同端口的 UDP 也一起转发
 
         if (Role == Role.Join && !StartAcceptLoop(mux))
@@ -593,11 +700,10 @@ public sealed class Session : IAsyncDisposable
         Changed?.Invoke();
     }
 
-    Task<string> NewRoomCodeAsync(CancellationToken ct)
+    string NewRoomCode()
     {
         const string alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        var code = new string(Enumerable.Range(0, 5).Select(_ => alphabet[Random.Shared.Next(alphabet.Length)]).ToArray());
-        return Task.FromResult(code);
+        return new string(Enumerable.Range(0, 5).Select(_ => alphabet[Random.Shared.Next(alphabet.Length)]).ToArray());
     }
 
     static int FreePort()

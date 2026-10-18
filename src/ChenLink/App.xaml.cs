@@ -1,4 +1,6 @@
 using System.IO;
+using ChenLink.Services;
+using ChenLink.ViewModels;
 using Microsoft.UI.Xaml;
 
 namespace ChenLink;
@@ -6,53 +8,49 @@ namespace ChenLink;
 public sealed partial class App : Application
 {
     public static Window? MainWindow { get; private set; }
+    public static SettingsService Settings { get; private set; } = null!;
+    public static LogService Log { get; private set; } = null!;
+    public static ThemeService Theme { get; private set; } = null!;
+    public static MainViewModel ViewModel { get; private set; } = null!;
+
+    static readonly SingleInstance Instance = new();
 
     public App()
     {
         InitializeComponent();
-        // 全局异常兜底：XAML 线程异常 + 非 XAML 线程异常都落盘，便于排查崩溃
-        UnhandledException += (_, e) => AppLog.Write("UnhandledException: " + e.Exception);
+
+        UnhandledException += (_, e) =>
+        {
+            Log?.Error("未处理异常：" + e.Exception);
+            e.Handled = false;
+        };
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
-            AppLog.Write("AppDomain UnhandledException: " + e.ExceptionObject);
+            Log?.Error("后台线程异常：" + e.ExceptionObject);
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        AppLog.Write("=== ChenLink 启动 ===");
-        MainWindow = new MainWindow();
-        MainWindow.Activate();
-    }
-}
-
-/// <summary>
-/// 极简文件日志：%LOCALAPPDATA%\ChenLink\logs\app-yyyyMMdd.log，按天滚动。
-/// 与 UI 日志同步写入，崩溃后可回溯。
-/// </summary>
-public static class AppLog
-{
-    static readonly object _lock = new();
-    static string? _file;
-    static DateTime _date;
-
-    public static void Write(string msg)
-    {
-        try
+        // 单实例：重复启动时把已有窗口拉到前台，避免两个进程抢同一个端口 / 两份 easytier-core
+        if (!Instance.TryAcquire())
         {
-            lock (_lock)
-            {
-                var today = DateTime.Today;
-                if (_file is null || _date != today)
-                {
-                    var dir = Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                        "ChenLink", "logs");
-                    Directory.CreateDirectory(dir);
-                    _file = Path.Combine(dir, $"app-{today:yyyyMMdd}.log");
-                    _date = today;
-                }
-                File.AppendAllText(_file, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {msg}\n");
-            }
+            SingleInstance.ActivateExisting();
+            Exit();
+            return;
         }
-        catch { /* 日志失败不影响主流程 */ }
+
+        Settings = new SettingsService();
+        Log = new LogService();
+        Theme = new ThemeService();
+
+        var connect = new ConnectViewModel(Settings, Log);
+        ViewModel = new MainViewModel(connect, new DiagnosticsViewModel(Log, connect), new SettingsViewModel(Settings, Theme, Log));
+
+        Log.Info("=== ChenLink 启动 ===");
+        Log.Info($"配置目录：{Path.GetDirectoryName(Settings.FilePath)}");
+
+        MainWindow = new MainWindow();
+        Theme.Attach(MainWindow);
+        Theme.Apply(Settings.Current.Theme);
+        MainWindow.Activate();
     }
 }

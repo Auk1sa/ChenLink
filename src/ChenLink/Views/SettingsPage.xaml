@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="ChenLink.Views.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:models="using:ChenLink.Models">
+
+    <ScrollViewer x:Name="PageScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid x:Name="RootLayout" HorizontalAlignment="Stretch" Padding="{StaticResource PagePadding}">
+            <StackPanel Spacing="18">
+
+                <StackPanel>
+                    <TextBlock Text="设置" Style="{StaticResource PageTitleStyle}" />
+                    <TextBlock Style="{StaticResource PageSubtitleStyle}"
+                               Text="所有改动即时生效并保存，下次启动保持上次的现场。" />
+                </StackPanel>
+
+                <!-- 外观 -->
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel Spacing="0">
+                        <TextBlock Text="外观" Style="{StaticResource CardTitleStyle}" Margin="0,0,0,6" />
+
+                        <Grid ColumnSpacing="16" Padding="0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="主题" FontSize="13.5" />
+                                <TextBlock Text="浅色 / 深色 / 跟随系统" Style="{StaticResource HintTextStyle}" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" Width="152" VerticalAlignment="Center"
+                                      SelectedIndex="{Binding Settings.ThemeIndex, Mode=TwoWay}">
+                                <ComboBoxItem Content="跟随系统" />
+                                <ComboBoxItem Content="浅色" />
+                                <ComboBoxItem Content="深色" />
+                            </ComboBox>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- 行为 -->
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel Spacing="0">
+                        <TextBlock Text="行为" Style="{StaticResource CardTitleStyle}" Margin="0,0,0,6" />
+
+                        <Grid ColumnSpacing="16" Padding="0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="开机自启动" FontSize="13.5" />
+                                <TextBlock Text="登录 Windows 后自动运行，不弹窗口" Style="{StaticResource HintTextStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                          IsOn="{Binding Settings.AutoStart, Mode=TwoWay}" />
+                        </Grid>
+                        <Border Style="{StaticResource DividerStyle}" />
+
+                        <Grid ColumnSpacing="16" Padding="0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="启动时自动探测公共节点" FontSize="13.5" />
+                                <TextBlock Text="首次启动会挑一个延迟最低的 EasyTier 节点" Style="{StaticResource HintTextStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                          IsOn="{Binding Settings.AutoProbe, Mode=TwoWay}" />
+                        </Grid>
+                        <Border Style="{StaticResource DividerStyle}" />
+
+                        <Grid ColumnSpacing="16" Padding="0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="点击关闭按钮时" FontSize="13.5" />
+                                <TextBlock Text="托盘常驻可以保持房间不掉线" Style="{StaticResource HintTextStyle}" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" Width="152" VerticalAlignment="Center"
+                                      SelectedIndex="{Binding Settings.CloseActionIndex, Mode=TwoWay}">
+                                <ComboBoxItem Content="每次询问" />
+                                <ComboBoxItem Content="最小化到托盘" />
+                                <ComboBoxItem Content="完全退出" />
+                            </ComboBox>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- 身份 -->
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel Spacing="0">
+                        <TextBlock Text="身份" Style="{StaticResource CardTitleStyle}" Margin="0,0,0,6" />
+
+                        <Grid ColumnSpacing="16" Padding="0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="玩家昵称" FontSize="13.5" />
+                                <TextBlock Text="{Binding Settings.NicknameHint}" Style="{StaticResource HintTextStyle}" />
+                            </StackPanel>
+                            <TextBox Grid.Column="1" Width="220" VerticalAlignment="Center" MaxLength="20"
+                                     PlaceholderText="留空使用计算机名"
+                                     Text="{Binding Settings.Nickname, Mode=TwoWay}" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- 默认连接参数 -->
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel Spacing="0">
+                        <TextBlock Text="连接默认值" Style="{StaticResource CardTitleStyle}" Margin="0,0,0,6" />
+
+                        <Grid ColumnSpacing="16" Padding="0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="默认游戏" FontSize="13.5" />
+                                <TextBlock Text="{Binding Settings.DefaultGameHint}" Style="{StaticResource HintTextStyle}" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" Width="300" VerticalAlignment="Center"
+                                      ItemsSource="{Binding Settings.Games}"
+                                      SelectedItem="{Binding Settings.DefaultGame, Mode=TwoWay}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="models:GamePreset">
+                                        <Grid ColumnSpacing="12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="1" Text="{Binding PortText}" FontSize="12"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </Grid>
+                        <Border Style="{StaticResource DividerStyle}" />
+
+                        <Grid ColumnSpacing="16" Padding="0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="默认端口" FontSize="13.5" />
+                                <TextBlock Text="选自定义游戏时使用这个端口" Style="{StaticResource HintTextStyle}" />
+                            </StackPanel>
+                            <NumberBox Grid.Column="1" Width="140" VerticalAlignment="Center"
+                                       Minimum="1" Maximum="65535" SpinButtonPlacementMode="Compact"
+                                       Value="{Binding Settings.DefaultPort, Mode=TwoWay}" />
+                        </Grid>
+                        <Border Style="{StaticResource DividerStyle}" />
+
+                        <Grid ColumnSpacing="16" Padding="0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="EasyTier 公共节点" FontSize="13.5" />
+                                <TextBlock Text="{Binding Settings.NodesSummary}" Style="{StaticResource HintTextStyle}"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                            <Button Grid.Column="1" Content="恢复默认" VerticalAlignment="Center"
+                                    Style="{StaticResource SubtleButtonStyle}"
+                                    Command="{Binding Settings.ResetNodesCommand}" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- 关于 -->
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel Spacing="12">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="40" Height="40" CornerRadius="10" Background="{StaticResource BrandGradientBrush}">
+                                <FontIcon Glyph="&#xE71B;" FontSize="18" Foreground="White" />
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                <TextBlock Text="{Binding Settings.VersionText}" FontWeight="SemiBold" FontSize="14" />
+                                <TextBlock Text="P2P 联机工具 · Apache-2.0 开源" Style="{StaticResource HintTextStyle}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Border Style="{StaticResource DividerStyle}" />
+
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding Settings.LogPath}" Style="{StaticResource HintTextStyle}"
+                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            <Button Grid.Column="1" Content="日志目录" Style="{StaticResource SubtleButtonStyle}"
+                                    Command="{Binding Settings.OpenLogFolderCommand}" />
+                            <Button Grid.Column="2" Content="GitHub" Style="{StaticResource SubtleButtonStyle}"
+                                    Command="{Binding Settings.OpenRepoCommand}" />
+                        </Grid>
+
+                        <TextBlock Style="{StaticResource HintTextStyle}"
+                                   Text="内置 EasyTier / wintun 以独立进程调用；托盘基于 H.NotifyIcon（MIT）。详见 THIRD_PARTY_NOTICES.md。" />
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

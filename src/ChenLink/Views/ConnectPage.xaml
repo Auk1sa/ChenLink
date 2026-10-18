@@ -1,0 +1,538 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="ChenLink.Views.ConnectPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:core="using:ChenLink.Core"
+    xmlns:models="using:ChenLink.Models">
+
+    <ScrollViewer x:Name="PageScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid x:Name="RootLayout" HorizontalAlignment="Stretch" Padding="{StaticResource PagePadding}">
+            <StackPanel Spacing="18">
+
+                <!-- ==================== 页头 ==================== -->
+                <StackPanel>
+                    <TextBlock Text="连接" Style="{StaticResource PageTitleStyle}" />
+                    <TextBlock Style="{StaticResource PageSubtitleStyle}"
+                               Text="让只能局域网联机的游戏，跨网络也能一起玩：房主开服，好友凭房间码接入。" />
+                </StackPanel>
+
+                <InfoBar IsOpen="{Binding Connect.IsNoticeOpen, Mode=TwoWay}"
+                         Severity="{Binding Connect.NoticeSeverity}"
+                         Message="{Binding Connect.NoticeText}"
+                         IsClosable="True" />
+
+                <!-- ==================== 状态卡 ==================== -->
+                <Border Style="{StaticResource CardStyle}">
+                    <Grid RowSpacing="16">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Grid ColumnSpacing="20" RowSpacing="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0" Grid.Column="0">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Grid Width="10" Height="10" VerticalAlignment="Center">
+                                        <Ellipse Fill="{ThemeResource StatusIdleBrush}"
+                                                 Visibility="{Binding Connect.Status.IsIdle, Converter={StaticResource BoolToVisibility}}" />
+                                        <Ellipse Fill="{ThemeResource StatusInfoBrush}"
+                                                 Visibility="{Binding Connect.Status.IsInfo, Converter={StaticResource BoolToVisibility}}" />
+                                        <Ellipse Fill="{ThemeResource StatusSuccessBrush}"
+                                                 Visibility="{Binding Connect.Status.IsSuccess, Converter={StaticResource BoolToVisibility}}" />
+                                        <Ellipse Fill="{ThemeResource StatusWarningBrush}"
+                                                 Visibility="{Binding Connect.Status.IsWarning, Converter={StaticResource BoolToVisibility}}" />
+                                        <Ellipse Fill="{ThemeResource StatusDangerBrush}"
+                                                 Visibility="{Binding Connect.Status.IsDanger, Converter={StaticResource BoolToVisibility}}" />
+                                    </Grid>
+                                    <TextBlock Text="{Binding Connect.Status.Title}" FontSize="21" FontWeight="SemiBold" />
+                                    <ProgressRing Width="16" Height="16" IsActive="{Binding Connect.Status.ShowProgress}"
+                                                  Visibility="{Binding Connect.Status.ShowProgress, Converter={StaticResource BoolToVisibility}}" />
+                                </StackPanel>
+
+                                <TextBlock Text="{Binding Connect.Status.Detail}" Style="{StaticResource PageSubtitleStyle}"
+                                           MaxWidth="620" HorizontalAlignment="Left" />
+
+                                <!-- 可直接复制的地址 / 房间码 -->
+                                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,12,0,0"
+                                            Visibility="{Binding Connect.Status.HasAddress, Converter={StaticResource BoolToVisibility}}">
+                                    <Border Background="{ThemeResource MonoCodeBackground}"
+                                            BorderBrush="{ThemeResource InsetStrokeBrush}" BorderThickness="1"
+                                            CornerRadius="8" Padding="12,7" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Connect.Status.Address}" Style="{StaticResource MonoStyle}"
+                                                   FontSize="15" FontWeight="SemiBold" IsTextSelectionEnabled="True" />
+                                    </Border>
+                                    <Button Content="{Binding Connect.Status.AddressLabel}"
+                                            Command="{Binding Connect.CopyAddressCommand}"
+                                            Style="{StaticResource SubtleButtonStyle}" />
+                                </StackPanel>
+
+                                <!-- 下一步指引 -->
+                                <Border Style="{StaticResource InsetCardStyle}" Padding="12,9" Margin="0,12,0,0"
+                                        HorizontalAlignment="Left"
+                                        Visibility="{Binding Connect.Status.NextStep, Converter={StaticResource NotEmptyToVisibility}}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE7BA;" FontSize="12" VerticalAlignment="Top" Margin="0,2,0,0"
+                                                  Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                        <TextBlock Text="{Binding Connect.Status.NextStep}" FontSize="12.5" TextWrapping="Wrap"
+                                                   MaxWidth="560" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <StackPanel x:Name="StatusActions" Grid.Row="0" Grid.Column="1"
+                                        Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+                                <Button Content="断开连接"
+                                        Command="{Binding Connect.DisconnectCommand}"
+                                        Style="{StaticResource SubtleButtonStyle}"
+                                        Visibility="{Binding Connect.Status.HasSession, Converter={StaticResource BoolToVisibility}}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Grid.Row="1" ColumnSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Style="{StaticResource InsetCardStyle}" Padding="13,10">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="模式" Style="{StaticResource MetricLabelStyle}" />
+                                    <TextBlock Text="{Binding Connect.Status.Mode}" Style="{StaticResource MetricValueStyle}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="1" Style="{StaticResource InsetCardStyle}" Padding="13,10">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="延迟" Style="{StaticResource MetricLabelStyle}" />
+                                    <TextBlock Text="{Binding Connect.Status.Latency}" Style="{StaticResource MetricValueStyle}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="2" Style="{StaticResource InsetCardStyle}" Padding="13,10">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="游戏连接" Style="{StaticResource MetricLabelStyle}" />
+                                    <TextBlock Text="{Binding Connect.Status.Channels}" Style="{StaticResource MetricValueStyle}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="3" Style="{StaticResource InsetCardStyle}" Padding="13,10">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="流量" Style="{StaticResource MetricLabelStyle}" />
+                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                        <TextBlock Text="↑" FontSize="13" Foreground="{ThemeResource StatusSuccessBrush}" />
+                                        <TextBlock Text="{Binding Connect.Status.Up}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="↓" FontSize="13" Foreground="{ThemeResource StatusInfoBrush}" />
+                                        <TextBlock Text="{Binding Connect.Status.Down}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <!-- ==================== 联机方式 ==================== -->
+                <StackPanel Spacing="8">
+                    <TextBlock Text="联机方式" Style="{StaticResource SectionLabelStyle}" />
+
+                    <Grid x:Name="ModeGrid" ColumnSpacing="12" RowSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <ToggleButton x:Name="EasyModeCard" Grid.Row="0" Grid.Column="0"
+                                      Style="{StaticResource ModeCardStyle}"
+                                      IsChecked="{Binding Connect.IsEasyTierMode, Mode=TwoWay}"
+                                      IsEnabled="{Binding Connect.CanSwitchMode}">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="34" Height="34" CornerRadius="9" VerticalAlignment="Top"
+                                        Background="{ThemeResource InsetBackgroundBrush}"
+                                        BorderBrush="{ThemeResource InsetStrokeBrush}" BorderThickness="1">
+                                    <FontIcon Glyph="&#xE774;" FontSize="15"
+                                              Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                </Border>
+                                <StackPanel Grid.Column="1" Spacing="3">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="免公网联机" FontWeight="SemiBold" />
+                                        <Border Style="{StaticResource PillStyle}" Padding="7,0"
+                                                Background="{ThemeResource StatusSuccessSoftBrush}"
+                                                BorderThickness="0">
+                                            <TextBlock Text="推荐" FontSize="10.5" FontWeight="SemiBold"
+                                                       Foreground="{ThemeResource StatusSuccessBrush}" />
+                                        </Border>
+                                    </StackPanel>
+                                    <TextBlock Text="借公共节点自动组网，双方都不用公网 IP" Style="{StaticResource HintTextStyle}" />
+                                </StackPanel>
+                            </Grid>
+                        </ToggleButton>
+
+                        <ToggleButton x:Name="RelayModeCard" Grid.Row="0" Grid.Column="1"
+                                      Style="{StaticResource ModeCardStyle}"
+                                      IsChecked="{Binding Connect.IsRelayMode, Mode=TwoWay}"
+                                      IsEnabled="{Binding Connect.CanSwitchMode}">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="34" Height="34" CornerRadius="9" VerticalAlignment="Top"
+                                        Background="{ThemeResource InsetBackgroundBrush}"
+                                        BorderBrush="{ThemeResource InsetStrokeBrush}" BorderThickness="1">
+                                    <FontIcon Glyph="&#xE968;" FontSize="15"
+                                              Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </Border>
+                                <StackPanel Grid.Column="1" Spacing="3">
+                                    <TextBlock Text="自建服务器" FontWeight="SemiBold" />
+                                    <TextBlock Text="用你自己的信令/中继服务器，或本机内嵌" Style="{StaticResource HintTextStyle}" />
+                                </StackPanel>
+                            </Grid>
+                        </ToggleButton>
+                    </Grid>
+                </StackPanel>
+
+                <!-- ==================== 免公网联机 ==================== -->
+                <Border Style="{StaticResource CardStyle}"
+                        Visibility="{Binding Connect.ShowEasyPanel, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel Spacing="14">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="免公网联机" Style="{StaticResource CardTitleStyle}" />
+                                <TextBlock Style="{StaticResource HintTextStyle}" Margin="0,3,0,0"
+                                           Text="房主先生成邀请码，玩家粘贴后双方自动组网；能看到彼此的虚拟 IP 后即可进游戏。" />
+                            </StackPanel>
+                            <Border Grid.Column="1" Style="{StaticResource PillStyle}" VerticalAlignment="Top"
+                                    Visibility="{Binding Connect.EasyTier.HasOwnIp, Converter={StaticResource BoolToVisibility}}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Text="虚拟 IP" FontSize="11" VerticalAlignment="Center"
+                                               Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                    <TextBlock Text="{Binding Connect.EasyTier.OwnIp}" Style="{StaticResource MonoStyle}"
+                                               FontSize="12" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <Grid x:Name="EasyColumns" ColumnSpacing="16" RowSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <!-- 房主 -->
+                            <Border x:Name="EasyHostCard" Grid.Row="0" Grid.Column="0"
+                                    Style="{StaticResource InsetCardStyle}" Padding="16">
+                                <StackPanel Spacing="11">
+                                    <TextBlock Text="我来开服" FontWeight="SemiBold" FontSize="13.5" />
+
+                                    <ComboBox Header="游戏预设" HorizontalAlignment="Stretch"
+                                              ItemsSource="{Binding Connect.EasyTier.Games}"
+                                              SelectedItem="{Binding Connect.EasyTier.SelectedGame, Mode=TwoWay}"
+                                              IsEnabled="{Binding Connect.CanEditForm}">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate x:DataType="models:GamePreset">
+                                                <Grid ColumnSpacing="12">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding PortText}" FontSize="12"
+                                                               VerticalAlignment="Center"
+                                                               Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                    <TextBlock Text="{Binding Connect.EasyTier.GameHint}" Style="{StaticResource HintTextStyle}"
+                                               Margin="0,-4,0,0" />
+
+                                    <NumberBox Header="游戏端口" Minimum="1" Maximum="65535"
+                                               SpinButtonPlacementMode="Compact"
+                                               Value="{Binding Connect.EasyTier.PortValue, Mode=TwoWay}"
+                                               IsEnabled="{Binding Connect.CanEditForm}" />
+
+                                    <TextBlock Text="{Binding Connect.EasyTier.HostError}" FontSize="12"
+                                               Foreground="{ThemeResource StatusDangerBrush}"
+                                               Visibility="{Binding Connect.EasyTier.HostError, Converter={StaticResource NotEmptyToVisibility}}" />
+
+                                    <Button Content="创建房间" HorizontalAlignment="Stretch"
+                                            Style="{StaticResource PrimaryButtonStyle}"
+                                            Command="{Binding Connect.CreateEasyRoomCommand}"
+                                            IsEnabled="{Binding Connect.CanStart}" />
+
+                                    <StackPanel Spacing="6"
+                                                Visibility="{Binding Connect.EasyTier.HasInvite, Converter={StaticResource BoolToVisibility}}">
+                                        <TextBlock Text="邀请码（整行发给好友）" Style="{StaticResource HintTextStyle}" />
+                                        <TextBox Text="{Binding Connect.EasyTier.Invite}" Style="{StaticResource ReadOnlyCodeStyle}" />
+                                        <Button Content="复制邀请码" HorizontalAlignment="Left"
+                                                Style="{StaticResource SubtleButtonStyle}"
+                                                Command="{Binding Connect.CopyInviteCommand}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 玩家 -->
+                            <Border x:Name="EasyJoinCard" Grid.Row="0" Grid.Column="1"
+                                    Style="{StaticResource InsetCardStyle}" Padding="16">
+                                <StackPanel Spacing="11">
+                                    <TextBlock Text="我加入" FontWeight="SemiBold" FontSize="13.5" />
+
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Header="粘贴房主邀请码"
+                                                 PlaceholderText="C7HQ2K|a1b2c3d4|25565"
+                                                 Text="{Binding Connect.EasyTier.InviteInput, Mode=TwoWay}"
+                                                 IsEnabled="{Binding Connect.CanEditForm}" />
+                                        <Button Grid.Column="1" Content="粘贴" VerticalAlignment="Bottom"
+                                                Style="{StaticResource SubtleButtonStyle}"
+                                                Command="{Binding Connect.PasteInviteCommand}" />
+                                    </Grid>
+
+                                    <TextBlock Text="{Binding Connect.EasyTier.JoinError}" FontSize="12"
+                                               Foreground="{ThemeResource StatusDangerBrush}"
+                                               Visibility="{Binding Connect.EasyTier.JoinError, Converter={StaticResource NotEmptyToVisibility}}" />
+
+                                    <Button Content="加入房间" HorizontalAlignment="Stretch"
+                                            Style="{StaticResource PrimaryButtonStyle}"
+                                            Command="{Binding Connect.JoinEasyRoomCommand}"
+                                            IsEnabled="{Binding Connect.CanStart}" />
+
+                                    <StackPanel Spacing="6"
+                                                Visibility="{Binding Connect.EasyTier.HasFound, Converter={StaticResource BoolToVisibility}}">
+                                        <TextBlock Text="游戏连接地址" Style="{StaticResource HintTextStyle}" />
+                                        <Grid ColumnSpacing="8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Background="{ThemeResource MonoCodeBackground}"
+                                                    BorderBrush="{ThemeResource InsetStrokeBrush}" BorderThickness="1"
+                                                    CornerRadius="8" Padding="10,7">
+                                                <TextBlock Text="{Binding Connect.EasyTier.FoundAddress}"
+                                                           Style="{StaticResource MonoStyle}" FontWeight="SemiBold"
+                                                           IsTextSelectionEnabled="True" />
+                                            </Border>
+                                            <Button Grid.Column="1" Content="复制" VerticalAlignment="Stretch"
+                                                    Style="{StaticResource SubtleButtonStyle}"
+                                                    Command="{Binding Connect.CopyFoundCommand}" />
+                                        </Grid>
+                                    </StackPanel>
+
+                                    <TextBlock Text="{Binding Connect.EasyTier.PeersSummary}" Style="{StaticResource HintTextStyle}" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <TextBlock Text="{Binding Connect.EasyTier.Hint}" Style="{StaticResource HintTextStyle}"
+                                   Visibility="{Binding Connect.EasyTier.Hint, Converter={StaticResource NotEmptyToVisibility}}" />
+
+                        <!-- 节点设置属于高级配置，默认折叠，避免首屏被设置项淹没 -->
+                        <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                            <Expander.Header>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="公共节点设置" FontSize="13" VerticalAlignment="Center" />
+                                    <TextBlock Text="高级 · 默认已自动选到低延迟节点"
+                                               Style="{StaticResource HintTextStyle}" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Expander.Header>
+                            <StackPanel Spacing="8" Padding="0,6,0,2">
+                                <TextBox Header="公共节点（逗号分隔）"
+                                         Text="{Binding Connect.EasyTier.Nodes, Mode=TwoWay}"
+                                         PlaceholderText="tcp://public.easytier.top:11010"
+                                         TextWrapping="Wrap" Height="84"
+                                         IsEnabled="{Binding Connect.CanEditForm}" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button Content="自动获取节点" Command="{Binding Connect.ProbeNodesCommand}"
+                                            Style="{StaticResource SubtleButtonStyle}" />
+                                    <Button Content="恢复默认" Command="{Binding Connect.UseDefaultNodesCommand}"
+                                            Style="{StaticResource SubtleButtonStyle}" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding Connect.EasyTier.PingSummary}" Style="{StaticResource HintTextStyle}" />
+                            </StackPanel>
+                        </Expander>
+                    </StackPanel>
+                </Border>
+
+                <!-- ==================== 自建服务器 ==================== -->
+                <Border Style="{StaticResource CardStyle}"
+                        Visibility="{Binding Connect.ShowRelayPanel, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel Spacing="14">
+                        <StackPanel>
+                            <TextBlock Text="自建服务器" Style="{StaticResource CardTitleStyle}" />
+                            <TextBlock Style="{StaticResource HintTextStyle}" Margin="0,3,0,0"
+                                       Text="需要一台双方都能访问的机器（公网 VPS 或局域网内一台）；也可以让本机兼任服务器。" />
+                        </StackPanel>
+
+                        <Grid ColumnSpacing="12" RowSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Header="信令服务器" PlaceholderText="1.2.3.4:9100"
+                                     Text="{Binding Connect.Relay.Server, Mode=TwoWay}" />
+                            <NumberBox Grid.Column="1" Header="端口" Width="104" Minimum="1" Maximum="65535"
+                                       SpinButtonPlacementMode="Compact"
+                                       Value="{Binding Connect.Relay.ServerPortValue, Mode=TwoWay}" />
+                            <ToggleSwitch Grid.Column="2" Header="内嵌服务器"
+                                          OnContent="运行中" OffContent="关闭"
+                                          IsOn="{Binding Connect.EmbeddedServer, Mode=TwoWay}"
+                                          MinWidth="104" />
+                        </Grid>
+
+                        <TextBlock Text="{Binding Connect.Relay.ServerHint}" Style="{StaticResource HintTextStyle}" />
+                        <TextBlock Text="{Binding Connect.EmbeddedHint}" FontSize="12"
+                                   Foreground="{ThemeResource StatusSuccessBrush}"
+                                   Visibility="{Binding Connect.EmbeddedHint, Converter={StaticResource NotEmptyToVisibility}}" />
+
+                        <Border Style="{StaticResource DividerStyle}" />
+
+                        <Grid x:Name="RelayColumns" ColumnSpacing="16" RowSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <!-- 房主 -->
+                            <Border x:Name="RelayHostCard" Grid.Row="0" Grid.Column="0"
+                                    Style="{StaticResource InsetCardStyle}" Padding="16">
+                                <StackPanel Spacing="11">
+                                    <TextBlock Text="房主 · 我开服" FontWeight="SemiBold" FontSize="13.5" />
+
+                                    <ComboBox Header="游戏预设" HorizontalAlignment="Stretch"
+                                              ItemsSource="{Binding Connect.Relay.Games}"
+                                              SelectedItem="{Binding Connect.Relay.SelectedGame, Mode=TwoWay}"
+                                              IsEnabled="{Binding Connect.CanEditForm}">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate x:DataType="models:GamePreset">
+                                                <Grid ColumnSpacing="12">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding PortText}" FontSize="12"
+                                                               VerticalAlignment="Center"
+                                                               Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                    <TextBlock Text="{Binding Connect.Relay.GameHint}" Style="{StaticResource HintTextStyle}"
+                                               Margin="0,-4,0,0" />
+
+                                    <NumberBox Header="游戏端口" Minimum="1" Maximum="65535"
+                                               SpinButtonPlacementMode="Compact"
+                                               Value="{Binding Connect.Relay.HostPortValue, Mode=TwoWay}"
+                                               IsEnabled="{Binding Connect.CanEditForm}" />
+
+                                    <PasswordBox Header="房间口令（可选）" PlaceholderText="留空则不加密"
+                                                 Password="{Binding Connect.Relay.HostSecret, Mode=TwoWay}"
+                                                 IsEnabled="{Binding Connect.CanEditForm}" />
+                                    <TextBlock Text="{Binding Connect.Relay.HostSecretHint}" Style="{StaticResource HintTextStyle}"
+                                               Margin="0,-4,0,0" />
+
+                                    <TextBlock Text="{Binding Connect.Relay.HostError}" FontSize="12"
+                                               Foreground="{ThemeResource StatusDangerBrush}"
+                                               Visibility="{Binding Connect.Relay.HostError, Converter={StaticResource NotEmptyToVisibility}}" />
+
+                                    <Button Content="创建房间" HorizontalAlignment="Stretch"
+                                            Style="{StaticResource PrimaryButtonStyle}"
+                                            Command="{Binding Connect.CreateRoomCommand}"
+                                            IsEnabled="{Binding Connect.CanStart}" />
+
+                                    <StackPanel Spacing="6"
+                                                Visibility="{Binding Connect.Relay.HasRoomCode, Converter={StaticResource BoolToVisibility}}">
+                                        <TextBlock Text="房间码（发给好友）" Style="{StaticResource HintTextStyle}" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <Border Background="{ThemeResource MonoCodeBackground}"
+                                                    BorderBrush="{ThemeResource InsetStrokeBrush}" BorderThickness="1"
+                                                    CornerRadius="9" Padding="14,6">
+                                                <TextBlock Text="{Binding Connect.Relay.RoomCode}" FontSize="24" FontWeight="Bold"
+                                                           CharacterSpacing="200" FontFamily="{StaticResource MonoFontFamily}" />
+                                            </Border>
+                                            <Button Content="复制" VerticalAlignment="Stretch"
+                                                    Style="{StaticResource SubtleButtonStyle}"
+                                                    Command="{Binding Connect.CopyRoomCodeCommand}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 玩家 -->
+                            <Border x:Name="RelayJoinCard" Grid.Row="0" Grid.Column="1"
+                                    Style="{StaticResource InsetCardStyle}" Padding="16">
+                                <StackPanel Spacing="11">
+                                    <TextBlock Text="玩家 · 加入好友" FontWeight="SemiBold" FontSize="13.5" />
+
+                                    <TextBox Header="房间码（5 位）" MaxLength="5" HorizontalAlignment="Center"
+                                             Style="{StaticResource CodeTextBoxStyle}"
+                                             Text="{Binding Connect.Relay.JoinCode, Mode=TwoWay}"
+                                             IsEnabled="{Binding Connect.CanEditForm}" />
+
+                                    <NumberBox Header="本机连接端口（游戏里连 127.0.0.1:此端口）" Minimum="1" Maximum="65535"
+                                               SpinButtonPlacementMode="Compact"
+                                               Value="{Binding Connect.Relay.JoinPortValue, Mode=TwoWay}"
+                                               IsEnabled="{Binding Connect.CanEditForm}" />
+
+                                    <PasswordBox Header="房间口令" PlaceholderText="房主设置了就填"
+                                                 Password="{Binding Connect.Relay.JoinSecret, Mode=TwoWay}"
+                                                 IsEnabled="{Binding Connect.CanEditForm}" />
+
+                                    <TextBlock Text="{Binding Connect.Relay.JoinError}" FontSize="12"
+                                               Foreground="{ThemeResource StatusDangerBrush}"
+                                               Visibility="{Binding Connect.Relay.JoinError, Converter={StaticResource NotEmptyToVisibility}}" />
+
+                                    <Button Content="加入房间" HorizontalAlignment="Stretch"
+                                            Style="{StaticResource PrimaryButtonStyle}"
+                                            Command="{Binding Connect.JoinRoomCommand}"
+                                            IsEnabled="{Binding Connect.CanStart}" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <TextBlock Text="{Binding Connect.Relay.Hint}" Style="{StaticResource HintTextStyle}"
+                                   Visibility="{Binding Connect.Relay.Hint, Converter={StaticResource NotEmptyToVisibility}}" />
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Style="{StaticResource HintTextStyle}"
+                           Text="免公网模式需要管理员权限安装虚拟网卡（首次会弹一次 UAC）；自建服务器模式仅转发 TCP/UDP 端口，房间口令非空时全程 AES-GCM 加密。" />
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

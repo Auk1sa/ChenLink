@@ -27,13 +27,14 @@
   - **旧模式（自建服务器）**：使用自己部署的信令/中继服务器，客户端也内置服务器，单机即可演示。
 - 🔀 **直连优先，中继兜底**：同网直连 / TCP 同时打开打洞 / 服务器中继，按顺序自动选择。
 - 🔒 **房间口令与端到端加密**：创建房间时设置口令，加入需匹配；口令非空时自动启用 AES-GCM 加密，中继服务器只能看到密文。
-- 🖥️ **现代 WinUI 3 界面**：深色主题、自绘标题栏、实时状态与流量统计。
+- 🖥️ **现代 WinUI 3 界面**：浅色 / 深色双主题、自绘标题栏、导航侧栏；窗口 760px 起自适应（宽屏展开侧栏 → 图标轨道 → 汉堡浮层），表单列自动堆叠、页面宽度自动限幅居中。
+- 📊 **状态一眼看清**：一张状态卡给出当前阶段、延迟、通道数与上下行流量，并直接告诉你「下一步做什么」；出错时错误信息进界面，不必翻日志。
 - 🧭 **托盘与关闭策略**：支持托盘右键菜单与双击恢复；关闭时可选每次询问、最小化到托盘或完全退出。
 - 📦 **单文件自包含**：目标机器无需安装 .NET 运行时或 Windows App SDK。
 
 ## 📦 安装 / 获取
 
-当前版本：**V1.2.0**。有两种方式获得程序：
+当前版本：**V1.3.0**。有两种方式获得程序：
 
 1. **下载单文件版**：前往 [Releases](https://github.com/Auk1sa/ChenLink/releases) 下载 `ChenLink.exe`。
 2. **自己构建**：见下方 [从源码构建](#-从源码构建)。
@@ -115,12 +116,33 @@ dotnet publish src/ChenLink/ChenLink.csproj -c Release -p:Platform=x64 -r win-x6
 ChenLink.sln
 src/
   ChenLink/            WinUI 3 客户端（现代 UI，未打包、自包含）
+    Core/              通用设施：ObservableObject / RelayCommand / 值转换器 / 格式化 / 局域网地址
+    Models/            数据模型：游戏预设目录（端口 + 协议 + 说明的唯一来源）
+    Services/          服务层：设置、日志、主题、托盘、单实例、剪贴板
+    ViewModels/        连接 / 诊断 / 设置 / 壳层，以及两个表单子 VM 与状态快照
+    Views/             三个页面（连接 / 诊断 / 设置）+ 页面宽度约束
+    Themes/            Tokens.xaml 设计令牌（浅色 + 深色两套语义画刷与控件样式）
     Engine/            纯 BCL 网络核心：Protocol / Mux / Session
     EasyTier/          EasyTier 子进程驱动（虚拟组网，独立进程调用）
     native/            EasyTier / wintun 等第三方二进制（见 THIRD_PARTY_NOTICES.md）
   ChenLinkServer/      信令 + 中继服务器（单文件，跨平台，可放公网 VPS）
 docs/                  GitHub Pages 展示页（静态站点）
 ```
+
+### 客户端分层
+
+界面不直接碰网络。调用方向固定向下，方便单点改动：
+
+```
+Views (XAML) ──绑定──> ViewModels ──调用──> Engine / EasyTier / Services
+      ▲                    │
+      └──── SessionStatus 快照（标题 / 详情 / 色调 / 指标 / 下一步）◄── 引擎事件
+```
+
+- **MVVM 不引第三方框架**：`ObservableObject` + `RelayCommand` / `AsyncRelayCommand`（异步命令自带防重入与异常回落）。
+- **状态集中在 `ConnectViewModel`**：房间生命周期、EasyTier 驱动、内嵌服务器只有一份，切模式不丢会话。
+- **界面只认状态快照**：`SessionStatus` 是不可变快照（色调、指标、下一步），XAML 里不写业务判断。
+- **设计令牌统一**：颜色、字号、圆角、卡片与按钮样式都来自 `Themes/Tokens.xaml`，浅色/深色各一套，切换不掉帧不重开窗口。
 
 ## 🧠 工作原理
 

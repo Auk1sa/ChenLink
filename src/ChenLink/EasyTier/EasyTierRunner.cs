@@ -200,8 +200,12 @@ public sealed class EasyTierRunner : IDisposable
             {
                 if (_core is { HasExited: true })
                 {
+                    // 旧版只改文案不复位状态，界面会一直挂着「已就绪」，但虚拟网络其实已经没了
+                    Ready = false;
+                    OwnIp = "";
+                    Peers = Array.Empty<EasyTierPeerInfo>();
                     StatusText = "easytier-core 已退出，请重试";
-                    Log?.Invoke("⚠️ easytier-core 意外退出：多为端口被旧进程占用，下次启动会自动清理并重试");
+                    Log?.Invoke($"⚠️ easytier-core 意外退出（退出码 {_core.ExitCode}），多为端口被旧进程占用，重试会自动清理");
                     Changed?.Invoke();
                     break;
                 }
@@ -315,18 +319,6 @@ public sealed class EasyTierRunner : IDisposable
 
     public void Dispose() { try { _cts?.Cancel(); } catch { } }
 
-    /// 清掉可能残留的 easytier-core（本工具独立使用 easytier，同机不会再跑别的实例）
-    static void KillLeftoverCores()
-    {
-        try
-        {
-            var psi = new ProcessStartInfo("taskkill") { UseShellExecute = false, CreateNoWindow = true };
-            psi.ArgumentList.Add("/F"); psi.ArgumentList.Add("/IM"); psi.ArgumentList.Add("easytier-core.exe");
-            using var p = Process.Start(psi);
-            p?.WaitForExit(2000);
-        }
-        catch { }
-    }
     // ---------- 解包内置二进制 ----------
 
     static string EnsureTools()

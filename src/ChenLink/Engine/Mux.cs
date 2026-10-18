@@ -1,7 +1,9 @@
 ﻿// 在一个持久 TCP 流（直连或中继）上复用多条游戏连接。
 // 帧：[4B 长度][1B 类型][4B 通道id][负载]；长度含类型..负载。
-// 类型：1 OPEN 2 OPEN_OK 3 DATA 4 CLOSE 5 UDP
+// 类型：1 OPEN 2 OPEN_OK 3 DATA 4 CLOSE 5 UDP 6 PING 7 PONG
+// PING/PONG 用于测量端到端延迟（旧版界面只有流量，没有任何延迟反馈）。
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Threading.Channels;
 
@@ -12,7 +14,7 @@ public sealed class Mux
     public const int MaxPayload = 64 * 1024;
     const int HeaderLen = 5; // type(1) + id(4)
 
-    public const byte Open = 1, OpenOk = 2, Data = 3, Close = 4, Udp = 5;
+    public const byte Open = 1, OpenOk = 2, Data = 3, Close = 4, Udp = 5, Ping = 6, Pong = 7;
 
     readonly Stream _s;
     readonly SemaphoreSlim _writeLock = new(1, 1);
@@ -24,6 +26,17 @@ public sealed class Mux
 
     public long BytesUp;   // 本端 -> 对端
     public long BytesDown; // 对端 -> 本端
+
+    int _latency = -1;                  // 端到端往返毫秒，-1 表示尚未测得
+    int _pingSeq;
+    long _pingId;
+    long _pingSentTicks;
+    long _lastPongTicks;
+
+    /// <summary>端到端延迟（毫秒）。链路刚建立或对端无响应时为 -1。</summary>
+    public int LatencyMs => Volatile.Read(ref _latency);
+
+    public event Action<int>? LatencyMeasured;
 
     public event Action<int>? Opened;          // host：收到 OPEN
     public event Action<string>? Failed;
@@ -81,8 +94,64 @@ public sealed class Mux
                 Interlocked.Add(ref BytesDown, body.Length);
                 UdpData?.Invoke(body);
                 break;
+            case Ping:
+                _ = ReplyPongAsync(id);
+                break;
+            case Pong:
+                OnPong(id);
+                break;
             default: break;
         }
+    }
+
+    async Task ReplyPongAsync(int id)
+    {
+        try { await SendAsync(Pong, id, default).ConfigureAwait(false); }
+        catch { /* 链路已在断开，忽略 */ }
+    }
+
+    void OnPong(long id)
+    {
+        if (id != Interlocked.Read(ref _pingId)) return;
+        var sent = Interlocked.Read(ref _pingSentTicks);
+        if (sent == 0) return;
+        Interlocked.Exchange(ref _pingSentTicks, 0);
+        Interlocked.Exchange(ref _lastPongTicks, Stopwatch.GetTimestamp());
+
+        var ms = (int)Math.Max(0, (Stopwatch.GetTimestamp() - sent) * 1000 / Stopwatch.Frequency);
+        Volatile.Write(ref _latency, ms);
+        LatencyMeasured?.Invoke(ms);
+    }
+
+    /// <summary>
+    /// 每 3 秒测一次往返延迟。超过 6 秒没有 PONG 就把延迟标记为未知，
+    /// 避免界面一直显示链路刚建立时的旧值（旧版完全没有这个信息）。
+    /// </summary>
+    public async Task RunLatencyProbeAsync(CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(500, ct).ConfigureAwait(false);
+            while (!ct.IsCancellationRequested)
+            {
+                var seq = Interlocked.Increment(ref _pingSeq);
+                Interlocked.Exchange(ref _pingId, seq);
+                Interlocked.Exchange(ref _pingSentTicks, Stopwatch.GetTimestamp());
+                await SendAsync(Ping, seq, default, ct).ConfigureAwait(false);
+
+                await Task.Delay(3000, ct).ConfigureAwait(false);
+
+                var last = Interlocked.Read(ref _lastPongTicks);
+                var stale = last != 0 && (Stopwatch.GetTimestamp() - last) * 1000 / Stopwatch.Frequency > 6500;
+                if (stale && LatencyMs >= 0)
+                {
+                    Volatile.Write(ref _latency, -1);
+                    LatencyMeasured?.Invoke(-1);
+                }
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch { /* 链路断开，探测定时器随之结束 */ }
     }
 
     public Task SendAsync(byte type, int id, ReadOnlyMemory<byte> payload, CancellationToken ct = default)
