@@ -45,6 +45,8 @@ All notable changes to ChenLink are documented in this file.
 - 修复 `NavigationView` 在 `PaneDisplayMode="Auto"` 下内容区算错宽度、页面右侧被窗口裁掉的问题
   （改为显式面板模式 + 按视口显式限幅，见 `PageLayout.cs` 注释）。
 - 修复模式卡片选中态不显示（`VisualStateManager` 写在了模板根节点之外，被静默忽略）。
+- 修复单文件版被改名后启动即崩溃（WinUI 未打包模式的资源按 exe 文件名定位）：现在会弹窗说明原因并提示改回
+  `ChenLink.exe`，不再静默闪退。
 
 ## V1.2.0 - 未发布
 
